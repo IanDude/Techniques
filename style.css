@@ -1,0 +1,139 @@
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-image: url('assets/background.png'), linear-gradient(to bottom right, #20A4DC, #54053B);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-blend-mode: screen;
+    color: #ffffff;
+    margin: 0;
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+.container {
+    width: 100%;
+    max-width: 1000px;
+}
+
+header {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+    padding: 20px;
+    text-align: center;
+    margin-bottom: 40px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+header h1 {
+    margin: 0;
+    font-size: 3em;
+    font-weight: 700;
+    color: #ade8f4;
+    text-transform: uppercase;
+}
+
+header p {
+    margin: 5px 0 0;
+    font-size: 1.2em;
+    color: #ffffff;
+}
+
+.grid-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+}
+
+.card {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 15px;
+    padding: 20px;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    min-height: 220px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+}
+
+.lock-icon {
+    width: 60px;
+    height: 60px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    margin-bottom: 15px;
+    /* Placeholder for actual lock icon */
+    background-image: url('https://img.icons8.com/plasticine/100/000000/lock-2.png');
+    background-size: 80%;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.card h2 {
+    margin: 0 0 15px 0;
+    font-size: 1.4em;
+    font-weight: 600;
+}
+
+.card button {
+    background-color: #ffffff;
+    color: #000000;
+    border: none;
+    padding: 10px 30px;
+    border-radius: 20px;
+    font-size: 1em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.card button:hover {
+    background-color: #ade8f4;
+}
+
+.card-ceasar {
+    background: linear-gradient(45deg, #ffd700, #ffec80);
+    color: #333;
+}
+.card-vigenere {
+    background: linear-gradient(45deg, #ff8c00, #ffa54f);
+    color: #333;
+}
+.card-transposition {
+    background: linear-gradient(45deg, #ff416c, #ff4b2b);
+    color: white;
+}
+
+.card-ceasar button, .card-vigenere button, .card-transposition button {
+    background-color: white;
+    color: black;
+}
+
+.coming-soon {
+    background: linear-gradient(45deg, #495057, #6c757d);
+}
+
+.coming-soon h2 {
+    color: #adb5bd;
+}
+
+.coming-soon .lock-icon {
+    filter: grayscale(80%);
+}
+
+.coming-soon button {
+    background-color: #6c757d;
+    color: #adb5bd;
+    cursor: not-allowed;
+} 
