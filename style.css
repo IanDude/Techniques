@@ -4,10 +4,9 @@ body {
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
-    background-blend-mode: screen;
+    background-attachment: fixed;
     color: #ffffff;
     margin: 0;
-    padding: 20px;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -19,27 +18,51 @@ body {
     max-width: 1000px;
 }
 
-header {
-    background-color: rgba(255, 255, 255, 0.1);
-    border-radius: 15px;
-    padding: 20px;
+.header {
+    background: rgba(0, 0, 0, 0.7);
+    border: 2px solid #0ff;
+    border-radius: 10px;
     text-align: center;
-    margin-bottom: 40px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    margin-bottom: 50px;
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+    animation: glow 2s infinite alternate;
+    position: relative;
+    overflow: hidden;
+    -webkit-backdrop-filter: blur(5px);
+    backdrop-filter: blur(5px);
 }
 
-header h1 {
-    margin: 0;
-    font-size: 3em;
-    font-weight: 700;
-    color: #ade8f4;
+.header-title {
+    font-size: 2.5rem;
     text-transform: uppercase;
+    letter-spacing: 3px;
+    color: #0ff;
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+    position: relative;
+    animation: glitch 5s infinite;
 }
 
-header p {
-    margin: 5px 0 0;
-    font-size: 1.2em;
-    color: #ffffff;
+.header-title::before,
+.header-title::after {
+    content: attr(data-text);
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0.8;
+}
+
+.header-title::before {
+    color: #0ff;
+    z-index: -1;
+    animation: glitch-effect 5s infinite;
+}
+
+.header-title::after {
+    color: #f0f;
+    z-index: -2;
+    animation: glitch-effect 5s infinite reverse;
 }
 
 .grid-container {
@@ -49,17 +72,43 @@ header p {
 }
 
 .card {
-    background-color: rgba(255, 255, 255, 0.05);
-    border-radius: 15px;
-    padding: 20px;
+    background: rgba(0, 0, 0, 0.7);
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+    animation: glow 2s infinite alternate;
+    position: relative;
+    overflow: hidden;
+    -webkit-backdrop-filter: blur(5px);
+    backdrop-filter: blur(5px);
+    border-radius: 10px;
+    padding: 2rem;
     text-align: center;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 2px solid #0ff;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
     align-items: center;
-    min-height: 220px;
+    min-height: 178px;
+    min-width: 108px;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Scanline overlay hidden by default */
+.card::after {
+    content: "";
+    position: absolute;
+    top: -100%;
+    left: 0;
+    width: 100%;
+    height: 200%;
+    background: linear-gradient(to bottom, rgba(0,255,255,0.1) 0%, transparent 50%, rgba(0,255,255,0.1) 100%);
+    transform: translateY(-100%);
+    pointer-events: none;
+    opacity: 0;
+}
+
+.card:hover::after {
+    animation: scanline 3s linear forwards infinite;
+    opacity: 1;
 }
 
 .card:hover {
@@ -70,58 +119,58 @@ header p {
 .lock-icon {
     width: 60px;
     height: 60px;
-    background-color: rgba(255, 255, 255, 0.1);
     border-radius: 50%;
-    margin-bottom: 15px;
-    /* Placeholder for actual lock icon */
-    background-image: url('https://img.icons8.com/plasticine/100/000000/lock-2.png');
-    background-size: 80%;
-    background-position: center;
-    background-repeat: no-repeat;
+    overflow: hidden;
+    background: rgba(255,255,255,0.1);
 }
+.mini-canvas {
+    width: 75%;
+    height: 75%;
+    display: block;
+    background: transparent;
+}
+
 
 .card h2 {
     margin: 0 0 15px 0;
-    font-size: 1.4em;
+    font-size: 1.5em;
     font-weight: 600;
+    letter-spacing: 1px;
+    color: #0ff;
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+    position: relative;
 }
 
-.card button {
-    background-color: #ffffff;
-    color: #000000;
-    border: none;
-    padding: 10px 30px;
-    border-radius: 20px;
-    font-size: 1em;
-    font-weight: bold;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
+/* Remove always-on glitch on h2 */
+.card h2::before,
+.card h2::after {
+    content: attr(data-text);
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
 }
 
-.card button:hover {
-    background-color: #ade8f4;
+.card h2::before {
+    color: #0ff;
+    z-index: -1;
 }
 
-.card-ceasar {
-    background: linear-gradient(45deg, #ffd700, #ffec80);
-    color: #333;
-}
-.card-vigenere {
-    background: linear-gradient(45deg, #ff8c00, #ffa54f);
-    color: #333;
-}
-.card-transposition {
-    background: linear-gradient(45deg, #ff416c, #ff4b2b);
-    color: white;
+.card h2::after {
+    color: #f0f;
+    z-index: -2;
 }
 
-.card-ceasar button, .card-vigenere button, .card-transposition button {
-    background-color: white;
-    color: black;
+/* Only glitch animation on hover */
+.card:hover h2,
+.card:hover h2::before,
+.card:hover h2::after {
+    animation: glitch-effect 5s infinite;
 }
 
 .coming-soon {
     background: linear-gradient(45deg, #495057, #6c757d);
+    cursor: not-allowed;
 }
 
 .coming-soon h2 {
@@ -136,4 +185,103 @@ header p {
     background-color: #6c757d;
     color: #adb5bd;
     cursor: not-allowed;
-} 
+}
+
+.back-button {
+    position: absolute;
+    top: 2rem;
+    left: 2rem;
+    background: linear-gradient(45deg, #00ffff, #0066ff);
+    border: none;
+    padding: 10px 20px;
+    font-size: 1em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: white;
+    border-radius: 5px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-family: 'Orbitron', sans-serif;
+    z-index: 10;
+    overflow: hidden;
+}
+
+.back-button::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    transform: rotate(45deg);
+    animation: buttonShine 3s infinite;
+}
+
+.back-button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.8);
+    animation: buttonPulse 1s infinite;
+}
+
+@keyframes glow {
+    from { box-shadow: 0 0 10px rgba(0, 255, 255, 0.3); }
+    to { box-shadow: 0 0 20px rgba(0, 255, 255, 0.6); }
+}
+
+@keyframes scanline {
+    0% { transform: translateY(-100%); }
+    100% { transform: translateY(100%); }
+}
+
+@keyframes flicker {
+    0% { opacity: 0.5; }
+    50% { opacity: 0.7; }
+    100% { opacity: 0.5; }
+}
+
+@keyframes textFlicker {
+    0%, 100% { 
+        opacity: 1;
+        transform: translateY(0);
+    }
+    50% { 
+        opacity: 0.95;
+        transform: translateY(1px);
+    }
+}
+
+@keyframes glitch-effect {
+    0% { transform: translate(0); }
+    20% { transform: translate(-2px, 2px); }
+    40% { transform: translate(-2px, -2px); }
+    60% { transform: translate(2px, 2px); }
+    80% { transform: translate(2px, -2px); }
+    100% { transform: translate(0); }
+}
+
+@keyframes buttonShine {
+    0% { transform: translateX(-100%) rotate(45deg); }
+    100% { transform: translateX(100%) rotate(45deg); }
+}
+
+@keyframes buttonPulse {
+    0% { box-shadow: 0 0 20px rgba(0, 255, 255, 0.8); }
+    50% { box-shadow: 0 0 30px rgba(0, 255, 255, 1); }
+    100% { box-shadow: 0 0 20px rgba(0, 255, 255, 0.8); }
+}
+
+@keyframes dotGlow {
+    0% { transform: scale(0.8); opacity: 0.5; }
+    50% { transform: scale(1.2); opacity: 0.8; }
+    100% { transform: scale(0.8); opacity: 0.5; }
+}
+
+@keyframes glitch {
+    0% { text-shadow: 2px 0 #0ff, -2px 0 #f0f; }
+    20% { text-shadow: -2px 0 #0ff, 2px 0 #f0f; }
+    40% { text-shadow: 2px 0 #0ff, -2px 0 #f0f; }
+    60% { text-shadow: -2px 0 #0ff, 2px 0 #f0f; }
+    80% { text-shadow: 2px 0 #0ff, -2px 0 #f0f; }
+    100% { text-shadow: -2px 0 #0ff, 2px 0 #f0f; }
+}
