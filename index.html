@@ -4,11 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cipher Techniques</title>
-        <link rel="stylesheet" href="style.css">
+        <link rel="stylesheet" href="techniquestyle.css">
         <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
         <link rel="stylesheet" href="../css/style.css?v=1.0.0">
         <script src="https://cdn.babylonjs.com/babylon.js"></script>
-        <script src="script.js"></script>
+        <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+        <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
+        <script src="techniquescript.js"></script>
 </head>
 <body>
     <a href="#" class="back-button">Back</a>
@@ -17,41 +19,46 @@
             <h2 class="header-title" data-text="Techniques">Techniques</h2>
         </header>
         <main class="grid-container">
-            <div class="card">
+            <div class="card" data-description="A simple substitution cipher where each letter is shifted by a fixed amount. " data-model="padlock-unlock.obj">
                 <canvas class="mini-canvas"></canvas>
-                <h2 data-text="Ceasar">Ceasar</h2>
-                
+                <h2 data-text="Caesar">Caesar</h2>
             </div>
-            <div class="card">
-                <div class="lock-icon"></div>
+            <div class="card" data-description="A polyalphabetic cipher that uses a keyword to shift letters." data-model="padlock-unlock.obj">
+                <canvas class="mini-canvas"></canvas>
                 <h2 data-text="Vigenère">Vigenère</h2>
             </div>
-            <div class="card">
-                <div class="lock-icon"></div>
+            <div class="card" data-description="A cipher that rearranges the letters of the plaintext." data-model="padlock-unlock.obj">
+                <canvas class="mini-canvas"></canvas>
                 <h2 data-text="Transposition">Transposition</h2>
             </div>
             <div class="card coming-soon">
-                <div class="lock-icon"></div>
+                <canvas class="mini-canvas"></canvas>
                 <h2>Coming soon</h2>
             </div>
             <div class="card coming-soon">
-                <div class="lock-icon"></div>
+                <canvas class="mini-canvas"></canvas>
                 <h2>Coming soon</h2>
             </div>
             <div class="card coming-soon">
-                <div class="lock-icon"></div>
+                <canvas class="mini-canvas"></canvas>
                 <h2>Coming soon</h2>
             </div>
             <div class="card coming-soon">
-                <div class="lock-icon"></div>
+                <canvas class="mini-canvas"></canvas>
                 <h2>Coming soon</h2>
             </div>
             <div class="card coming-soon">
-                <div class="lock-icon"></div>
+                <canvas class="mini-canvas"></canvas>
                 <h2>Coming soon</h2>
-                
             </div>
         </main>
+    </div>
+    <div id="card-modal" class="card-modal" style="display:none;">
+      <div class="card-modal-content">
+        <span class="card-modal-close">&times;</span>
+        <h2 class="modal-title"></h2>
+        <p class="modal-description"></p>
+      </div>
     </div>
 </body>
 </html>
