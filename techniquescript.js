@@ -166,8 +166,8 @@ async function runCaesarAnimationEncrypt({ scene, camera, engine }, shift, stopL
             const char = letterBox.originalChar.toUpperCase();
             const charIndex = alphabet.indexOf(char);
             if (charIndex === -1) continue;
-            letterBox.material.emissiveColor = new BABYLON.Color3.FromHexString("#87ffff");
-            letterBox.material.diffuseColor = new BABYLON.Color3.FromHexString("#87ffff");
+            letterBox.material.emissiveColor = new BABYLON.Color3.FromHexString("#9dfafa"); // Highlight Color
+            letterBox.material.diffuseColor = new BABYLON.Color3.FromHexString("#9dfafa"); // Highlight Color
             const riseHeight = 2;
             const duration = 1000;
             const animSteps = 30;
@@ -354,8 +354,8 @@ async function runCaesarAnimationDecrypt({ scene, camera, engine }, shift, stopL
             const char = letterBox.originalChar.toUpperCase();
             const charIndex = alphabet.indexOf(char);
             if (charIndex === -1) continue;
-            letterBox.material.emissiveColor = new BABYLON.Color3.FromHexString("#87ffff");
-            letterBox.material.diffuseColor = new BABYLON.Color3.FromHexString("#87ffff");
+            letterBox.material.emissiveColor = new BABYLON.Color3.FromHexString("#9dfafa"); // Highlight Color
+            letterBox.material.diffuseColor = new BABYLON.Color3.FromHexString("#9dfafa"); // Highlight Color
             const riseHeight = 2;
             const duration = 1000;
             const animSteps = 30;
@@ -480,7 +480,6 @@ function vigenereShiftEncrypt(char, keyChar) {
         return char;
     }
 }
-
 // Vigenère decrypt helper: P = (C - K + 26) mod 26
 function vigenereShiftDecrypt(char, keyChar) {
     const code = char.charCodeAt(0);
@@ -569,8 +568,8 @@ function renderVigenereTable(table, highlightCol = -1, highlightRow = -1) {
     return html;
 }
 
-let currentAnimationId = 0;
-let currentAnimationPromise = null;
+// let currentAnimationId = 0;
+// let currentAnimationPromise = null;
 
 window.addEventListener('DOMContentLoaded', () => {
     // Mini-canvas Babylon.js setup
@@ -815,14 +814,14 @@ function runMain() {
         sliderFieldGroup.appendChild(sliderContainer);
 
         // Mode toggle field with label
-        const modeFieldGroup = document.createElement('div');
-        modeFieldGroup.style.display = 'flex';
-        modeFieldGroup.style.flexDirection = 'column';
-        modeFieldGroup.style.gap = '4px';
+        const caesarModeGroup = document.createElement('div');
+        caesarModeGroup.style.display = 'flex';
+        caesarModeGroup.style.flexDirection = 'column';
+        caesarModeGroup.style.gap = '4px';
 
         const modeLabel = document.createElement('label');
         modeLabel.htmlFor = 'caesar-mode';
-        modeLabel.textContent = 'Mode';
+        modeLabel.textContent = 'Mode: ';
         styleLabel(modeLabel);
 
         const caesarModeSelect = document.createElement('select');
@@ -848,13 +847,13 @@ function runMain() {
         caesarModeSelect.appendChild(encryptOption);
         caesarModeSelect.appendChild(decryptOption);
 
-        modeFieldGroup.appendChild(modeLabel);
-        modeFieldGroup.appendChild(caesarModeSelect);
+        caesarModeGroup.appendChild(modeLabel);
+        caesarModeGroup.appendChild(caesarModeSelect);
     
         // Assemble input group
         caesarInputGroup.appendChild(textFieldGroup);
         caesarInputGroup.appendChild(sliderFieldGroup);
-        caesarInputGroup.appendChild(modeFieldGroup);
+        caesarInputGroup.appendChild(caesarModeGroup);
     
         // Insert elements into modal
         modalContent.insertBefore(caesarInputGroup, modalDescription.nextSibling);
@@ -907,10 +906,10 @@ function runMain() {
                 // Update label text based on mode
                 if (caesarModeSelect.value === 'encrypt') {
                     textLabel.textContent = 'Plaintext';
-                    caesarPlaintextInput.value = caesarPlaintextInput.value || 'HELLO';
+                    caesarPlaintextInput.value = 'HELLO';
                 } else {
                     textLabel.textContent = 'Ciphertext';
-                    caesarPlaintextInput.value = caesarPlaintextInput.value || 'KHOOR';
+                    caesarPlaintextInput.value = 'KHOOR';
                 }
                 restartCaesarAnimation();
             });
@@ -1009,30 +1008,47 @@ function runMain() {
         styleTextbox(plaintextInput);
         plaintextGroup.appendChild(plaintextLabel);
         plaintextGroup.appendChild(plaintextInput);
-        // Button group
-        const buttonGroup = document.createElement('div');
-        buttonGroup.className = 'button-group';
-        // Mode selector (Encrypt/Decrypt)
+        // Mode toggle field with label
+        const vigModeGroup = document.createElement('div');
+        vigModeGroup.className = 'input-group';
+        vigModeGroup.style.display = 'flex';
+        vigModeGroup.style.alignItems = 'left';
+        vigModeGroup.style.gap = '10px';
+        const modeLabel = document.createElement('label');
+        modeLabel.setAttribute('for', 'vig-mode');
+        modeLabel.textContent = 'Mode:';
+        styleLabel(modeLabel);
         const vigModeSelect = document.createElement('select');
         vigModeSelect.id = 'vig-mode';
         vigModeSelect.style.border = '2px solid #00ffff';
         vigModeSelect.style.borderRadius = '5px';
-        vigModeSelect.style.background = '#000000';
+        vigModeSelect.style.padding = '5px';
         vigModeSelect.style.color = '#00ffff';
-        vigModeSelect.style.padding = '4px 6px';
+        vigModeSelect.style.backgroundColor = '#000000';
+        vigModeSelect.style.fontSize = '14px';
+        vigModeSelect.style.fontWeight = 'bold';
+        vigModeSelect.style.width = '120px';
         const vigOptEnc = document.createElement('option'); vigOptEnc.value = 'encrypt'; vigOptEnc.text = 'Encrypt';
         const vigOptDec = document.createElement('option'); vigOptDec.value = 'decrypt'; vigOptDec.text = 'Decrypt';
         vigModeSelect.appendChild(vigOptEnc);
         vigModeSelect.appendChild(vigOptDec);
+        vigModeGroup.appendChild(modeLabel);
+        vigModeGroup.appendChild(vigModeSelect);
+        vigControlsDiv.appendChild(vigModeGroup);
+
+        // Button group
+        const buttonGroup = document.createElement('div');
+        buttonGroup.className = 'button-group';
+        // Mode selector (Encrypt/Decrypt)
         const toggleBtn = document.createElement('button');
         toggleBtn.className = 'pauseplay-btn';
         toggleBtn.id = 'vig-toggle-btn';
         toggleBtn.textContent = 'Pause';
-        buttonGroup.appendChild(vigModeSelect);
         buttonGroup.appendChild(toggleBtn);
         // Append groups to controls
         vigControlsDiv.appendChild(plaintextGroup);
         vigControlsDiv.appendChild(inputGroup);
+        vigControlsDiv.appendChild(vigModeGroup);
         vigControlsDiv.appendChild(buttonGroup);
         // Insert controls above canvas, then canvas, then table below canvas
         modalContent.insertBefore(vigControlsDiv, modalDescription.nextSibling);
@@ -1051,7 +1067,7 @@ function runMain() {
           vigIsPlayingRef = { value: true };
           vigCurrentAnimationId++;
           // Animation function
-          async function runAnimationWithTableHighlight({ scene, camera, engine }, message, keyword, stopLoopRef, isPlayingRef, animationId, tableHighlightCb) {
+          async function runAnimationWithTableHighlight({ scene, camera, engine }, message, keyword, mode, stopLoopRef, isPlayingRef, animationId, tableHighlightCb) {
             while (!stopLoopRef.value && animationId === vigCurrentAnimationId) {
                 // Remove all meshes and GUI
                 scene.meshes.slice().forEach(mesh => mesh.dispose());
@@ -1110,6 +1126,13 @@ function runMain() {
                 }
                 // Animate
                 const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+                const getRowStr = (kChar) => {
+                    const idx = alphabet.indexOf(kChar);
+                    if (idx < 0) return '';
+                    return alphabet.slice(idx) + alphabet.slice(0, idx);
+                };
+                // Track key position only over letters to align with keyword
+                let keyPos = 0;
                 for (let i = 0; i < letterBoxes.length; i++) {
                     if (stopLoopRef.value || animationId !== vigCurrentAnimationId) break;
                     while (!isPlayingRef.value && !stopLoopRef.value && animationId === vigCurrentAnimationId) await new Promise(r => setTimeout(r, 50));
@@ -1117,19 +1140,26 @@ function runMain() {
                     const letterBox = letterBoxes[i];
                     letterBox.suppressAnimation = true;
                     const char = letterBox.originalChar.toUpperCase();
+                    const isLetter = /[A-Z]/.test(char);
                     const keyChar = fullKey[i];
-                    const charIndex = alphabet.indexOf(char);
-                    const keyIndex = alphabet.indexOf(keyChar);
-                    if (charIndex === -1 || keyIndex === -1) continue;
-                    // Highlight table for current box
-                    if (typeof tableHighlightCb === 'function') {
-                        tableHighlightCb(charIndex, i % keyword.length); // i is the row index in the table
+                    const keyCharIndex = alphabet.indexOf(keyChar);
+                    // Determine row/col for table highlight
+                    if (isLetter && keyCharIndex !== -1 && typeof tableHighlightCb === 'function') {
+                        const rowIdx = keyPos % keyword.length;
+                        let colIdx = -1;
+                        if (mode === 'decrypt') {
+                            const rowStr = getRowStr(keyChar);
+                            colIdx = rowStr.indexOf(char);
+                        } else {
+                            colIdx = alphabet.indexOf(char);
+                        }
+                        tableHighlightCb(colIdx, rowIdx);
                     }
 
                     // Animate scale and color
                     const highlightColor = BABYLON.Color3.FromHexString("#4fffff"); // Vivid Cyan
                     const normalColor = BABYLON.Color3.FromHexString("#00ffff"); // Cyan
-                    const highlightEmissive = BABYLON.Color3.FromHexString("#9dfafa"); // Vivid Cyan
+                    const highlightEmissive = BABYLON.Color3.FromHexString("#9dfafa"); // Baby Blue
                     const normalEmissive = BABYLON.Color3.FromHexString("#00ffff"); // Cyan
                     const duration = 1000;
                     const animSteps = 30;
@@ -1151,13 +1181,16 @@ function runMain() {
                     letterBox.material.diffuseColor = highlightColor;
                     letterBox.material.emissiveColor = highlightEmissive;
                     // Compute shifted letter (mode-aware)
-                    const mode = (typeof vigModeSelect !== 'undefined' && vigModeSelect) ? vigModeSelect.value : 'encrypt';
                     const shifted = (mode === 'decrypt')
                         ? vigenereShiftDecrypt(char, keyChar)
                         : vigenereShiftEncrypt(char, keyChar);
                     letterBox.texture.clear();
                     letterBox.texture.drawText(shifted, null, null, "bold 48px Arial", "#000000", "#e0e7ef", true);
                     letterBox.char = shifted;
+                    // Advance key position only when processing a letter
+                    if (isLetter && keyCharIndex !== -1) {
+                        keyPos++;
+                    }
                     await new Promise(resolve => setTimeout(resolve, 400));
                     // Animate back to normal
                     for (let t = 0; t <= animSteps; t++) {
@@ -1193,6 +1226,12 @@ function runMain() {
           // Table update function
           function updateVigenereTable(highlightCol = -1, highlightRow = -1) {
             const table = generateVigenereTableFromKeyword(keywordInput.value);
+            // Apply mode as a class on the table container for CSS-based styling
+            const mode = (typeof vigModeSelect !== 'undefined' && vigModeSelect) ? vigModeSelect.value : 'encrypt';
+            if (vigTableDiv && vigTableDiv.classList) {
+                vigTableDiv.classList.toggle('decrypt-mode', mode === 'decrypt');
+                vigTableDiv.classList.toggle('encrypt-mode', mode === 'encrypt');
+            }
             vigTableDiv.innerHTML = renderVigenereTable(table, highlightCol, highlightRow);
             
             // Add scroll event listeners to show/hide bubbles based on scroll position
@@ -1322,6 +1361,7 @@ function runMain() {
               vigBabylon,
               plaintextInput.value,
               keywordInput.value,
+              (typeof vigModeSelect !== 'undefined' && vigModeSelect) ? vigModeSelect.value : 'encrypt',
               vigStopLoopRef,
               vigIsPlayingRef,
               vigCurrentAnimationId,
@@ -1375,9 +1415,32 @@ function runMain() {
                 }
                 let firstCharIndex = -1, firstKeyIndex = -1;
                 if (messageUpper.length > 0 && key.length > 0) {
-                    // Column corresponds to the input stream's first character (plaintext for encrypt, ciphertext for decrypt)
-                    firstCharIndex = alphabet.indexOf(messageUpper[0]);
-                    firstKeyIndex = alphabet.indexOf(fullKey[0]);
+                    // Find first position where both message char and key char are letters
+                    let pos = -1;
+                    let lettersSeen = 0; // count of letter positions up to pos to compute row index
+                    for (let i = 0; i < messageUpper.length; i++) {
+                        const mc = messageUpper[i];
+                        const kc = fullKey[i];
+                        if (/[A-Z]/.test(mc)) {
+                            // increment lettersSeen for each letter in message
+                            if (/[A-Z]/.test(kc)) {
+                                pos = i;
+                                break;
+                            }
+                            lettersSeen++;
+                        }
+                    }
+                    if (pos !== -1) {
+                        const keyChar = fullKey[pos];
+                        firstKeyIndex = lettersSeen % key.length; // row index in table
+                        if (mode === 'decrypt') {
+                            const shift = alphabet.indexOf(keyChar);
+                            const rowStr = shift >= 0 ? (alphabet.slice(shift) + alphabet.slice(0, shift)) : '';
+                            firstCharIndex = rowStr.indexOf(messageUpper[pos]);
+                        } else {
+                            firstCharIndex = alphabet.indexOf(messageUpper[pos]);
+                        }
+                    }
                 }
                 updateVigenereTable(firstCharIndex, firstKeyIndex);
                 updatePlayPauseState();
@@ -1386,6 +1449,7 @@ function runMain() {
                     vigBabylon,
                     plaintextInput.value,
                     keywordInput.value,
+                    (typeof vigModeSelect !== 'undefined' && vigModeSelect) ? vigModeSelect.value : 'encrypt',
                     vigStopLoopRef,
                     vigIsPlayingRef,
                     vigCurrentAnimationId,
@@ -1862,8 +1926,8 @@ function runMain() {
                                     const box = boxes[boxIndex];
                                     if (box && box.mesh) {
                                         const highlightMaterial = new BABYLON.StandardMaterial(`highlight_mat_${boxIndex}`, scene);
-                                        highlightMaterial.diffuseColor = new BABYLON.Color3.FromHexString("#87ffff");
-                                        highlightMaterial.emissiveColor = new BABYLON.Color3.FromHexString("#87ffff");
+                                        highlightMaterial.diffuseColor = new BABYLON.Color3.FromHexString("#9dfafa");
+                                        highlightMaterial.emissiveColor = new BABYLON.Color3.FromHexString("#9dfafa");
                                         highlightMaterial.diffuseTexture = box.mesh.material.diffuseTexture;
                                         box.mesh.material = highlightMaterial;
                                         

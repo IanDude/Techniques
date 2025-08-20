@@ -521,7 +521,24 @@ body {
     color: #000 !important;
     font-weight: bold;
     }
-    
+
+/* Decrypt mode adjustments: move strong intersection emphasis to the column header */
+.decrypt-mode .vig-table tr.highlight-row td.highlight-col {
+  /* Neutralize special intersect cell emphasis; keep it same as standard column highlight */
+  background: #4fffff !important;
+  color: #000 !important;
+  font-weight: 600; /* slightly bold but not the strongest */
+}
+
+.decrypt-mode .vig-table th.highlight-col {
+  /* Apply strong emphasis on the column header to represent plaintext in decrypt */
+  background: #b0ffff !important;
+  color: #000 !important;
+  border-bottom: 3px solid #00bcd4 !important;
+  box-shadow: 0 0 0 2px #00bcd4 inset;
+  font-weight: 800;
+}
+
 .controls {
     margin-top: 24px;
     margin-bottom: 12px;
