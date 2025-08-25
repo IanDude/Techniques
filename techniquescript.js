@@ -505,6 +505,63 @@ function generateVigenereTableFromKeyword(keyword) {
     return table;
 }
 
+// Columnar Transposition encrypt helper (top-level, similar to Caesar/Vigenère helpers)
+// padWithX (optional): when true, pad plaintext with 'X' to a multiple of key length (default: true)
+function columnarTranspositionEncrypt(message, key, padWithX = true) {
+    // Normalize inputs
+    message = (message || '').replace(/[^A-Za-z]/g, '').toUpperCase();
+    key = (key || '');
+    const isKeyNumeric = /^\d+$/.test(key);
+    if (isKeyNumeric) {
+        key = key.replace(/[^0-9]/g, '');
+    } else {
+        key = key.replace(/[^A-Za-z]/g, '').toUpperCase();
+    }
+    if (!key) return message;
+
+    const cols = key.length;
+    // Pad with 'X' to a multiple of cols (optional)
+    if (padWithX) {
+        const padLen = (cols - (message.length % cols)) % cols;
+        if (padLen > 0) message = message + 'X'.repeat(padLen);
+    }
+    const rows = Math.ceil(message.length / cols);
+
+    // Fill grid row-wise
+    const grid = [];
+    let idx = 0;
+    for (let r = 0; r < rows; r++) {
+        const row = [];
+        for (let c = 0; c < cols; c++) {
+            row.push(message[idx] || '');
+            idx++;
+        }
+        grid.push(row);
+    }
+
+    // Sort key to get column order (stable by original index)
+    let keyOrder;
+    if (isKeyNumeric) {
+        keyOrder = key.split('').map((ch, i) => ({ ch: parseInt(ch), i }))
+            .sort((a, b) => a.ch - b.ch || a.i - b.i)
+            .map(obj => obj.i);
+    } else {
+        keyOrder = key.split('').map((ch, i) => ({ ch, i }))
+            .sort((a, b) => a.ch.localeCompare(b.ch) || a.i - b.i)
+            .map(obj => obj.i);
+    }
+
+    // Read columns in sorted key order
+    let ciphertext = '';
+    for (let k = 0; k < keyOrder.length; k++) {
+        const c = keyOrder[k];
+        for (let r = 0; r < rows; r++) {
+            if (grid[r][c]) ciphertext += grid[r][c];
+        }
+    }
+    return ciphertext;
+}
+
 function renderVigenereTable(table, highlightCol = -1, highlightRow = -1) {
     const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
     
@@ -1471,10 +1528,10 @@ function runMain() {
           vigModeSelect.addEventListener('change', () => {
               if (vigModeSelect.value === 'encrypt') {
                   plaintextLabel.textContent = 'Plaintext:';
-                  if (!plaintextInput.value) plaintextInput.value = 'HELLO';
+                  plaintextInput.value = 'HELLO';
               } else {
                   plaintextLabel.textContent = 'Ciphertext:';
-                  if (!plaintextInput.value) plaintextInput.value = 'RIJVS';
+                  plaintextInput.value = 'RIJVS';
               }
               restartVigenereAnimation();
           });
@@ -1576,87 +1633,91 @@ function runMain() {
         keyFieldGroup.appendChild(keyLabel);
         keyFieldGroup.appendChild(transKeyInput);
         
+        // Toggle: Pad with X
+        let padWithX = true;
+        const padWithXGroup = document.createElement('div');
+        padWithXGroup.style.display = 'flex';
+        padWithXGroup.style.flexDirection = 'row';
+        padWithXGroup.style.alignItems = 'center';
+        padWithXGroup.style.gap = '8px';
+        
+        const padWithXLabel = document.createElement('label');
+        padWithXLabel.htmlFor = 'trans-pad-with-x';
+        padWithXLabel.textContent = 'Pad with X';
+        styleLabel(padWithXLabel);
+        
+        const padWithXCheckbox = document.createElement('input');
+        padWithXCheckbox.type = 'checkbox';
+        padWithXCheckbox.id = 'trans-pad-with-x';
+        padWithXCheckbox.checked = true;
+        padWithXCheckbox.style.width = '18px';
+        padWithXCheckbox.style.height = '18px';
+        padWithXCheckbox.style.accentColor = '#00ffff';
+        padWithXCheckbox.style.backgroundColor = '#000';
+        
+        
+        padWithXGroup.appendChild(padWithXCheckbox);
+        padWithXGroup.appendChild(padWithXLabel);
+        
+        // Ciphertext/Plaintext display
+        // Ciphertext display
+        const ciphertextContainer = document.createElement('div');
+        ciphertextContainer.style.marginTop = '20px';
+        ciphertextContainer.style.padding = '10px';
+        ciphertextContainer.style.border = '1px solid #00ffff';
+        ciphertextContainer.style.borderRadius = '5px';
+        ciphertextContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+        ciphertextContainer.style.color = '#00ffff';
+        ciphertextContainer.style.fontFamily = 'monospace';
+        ciphertextContainer.style.fontSize = '16px';
+        ciphertextContainer.style.whiteSpace = 'pre-wrap';
+        ciphertextContainer.style.minHeight = '30px';
+
+        const ciphertextLabel = document.createElement('span');
+        ciphertextLabel.textContent = 'Ciphertext: ';
+        ciphertextLabel.style.fontWeight = 'bold';
+        ciphertextContainer.appendChild(ciphertextLabel);
+
+        const ciphertextValue = document.createElement('span');
+        ciphertextValue.id = 'ciphertext-value';
+        ciphertextValue.textContent = '';
+        ciphertextContainer.appendChild(ciphertextValue);
+
+
         // Assemble input group
         transInputGroup.appendChild(textFieldGroup);
         transInputGroup.appendChild(keyFieldGroup);
-        
+        transInputGroup.appendChild(padWithXGroup);
+                
         // Insert elements into modal
         modalContent.insertBefore(transInputGroup, modalDescription.nextSibling);
         modalContent.insertBefore(transCanvas, transInputGroup.nextSibling);
+        modalContent.insertBefore(ciphertextContainer, transCanvas.nextSibling);
         
-        // Transposition cipher functions
-        function columnarTranspositionEncrypt(message, key) {
-            message = message.replace(/[^A-Za-z]/g, '').toUpperCase();
-            
-            const isKeyNumeric = /^\d+$/.test(key);
-            if (isKeyNumeric) {
-                key = key.replace(/[^0-9]/g, '');
-            } else {
-                key = key.replace(/[^A-Za-z]/g, '').toUpperCase();
-            }
-            
-            if (!key) return message;
-            
-            const cols = key.length;
-            const rows = Math.ceil(message.length / cols);
-            
-            // Fill grid row-wise
-            let grid = [];
-            let idx = 0;
-            for (let r = 0; r < rows; r++) {
-                let row = [];
-                for (let c = 0; c < cols; c++) {
-                    row.push(message[idx] || '');
-                    idx++;
-                }
-                grid.push(row);
-            }
-            
-            // Sort key to get column order
-            let keyOrder;
-            if (isKeyNumeric) {
-                keyOrder = key.split('').map((ch, i) => ({ch: parseInt(ch), i}))
-                    .sort((a, b) => a.ch - b.ch || a.i - b.i)
-                    .map(obj => obj.i);
-            } else {
-                keyOrder = key.split('').map((ch, i) => ({ch, i}))
-                    .sort((a, b) => a.ch.localeCompare(b.ch) || a.i - b.i)
-                    .map(obj => obj.i);
-            }
-            
-            // Read columns in key order
-            let ciphertext = '';
-            for (let k = 0; k < keyOrder.length; k++) {
-                let c = keyOrder[k];
-                for (let r = 0; r < rows; r++) {
-                    if (grid[r][c]) ciphertext += grid[r][c];
-                }
-            }
-            return ciphertext;
-        }
+        // Transposition cipher functions (moved to top-level): columnarTranspositionEncrypt(message, key)
         
-        // Fade functions for GUI
-        async function fadeInRect(rect, duration = 300) {
-            const steps = 20;
-            for (let s = 0; s <= steps; s++) {
-                const t = s / steps;
-                const ease = 0.5 - 0.5 * Math.cos(Math.PI * t);
-                rect.alpha = ease;
-                await new Promise(r => setTimeout(r, duration / steps));
-            }
-            rect.alpha = 1;
-        }
+        // // Fade functions for GUI
+        // async function fadeInRect(rect, duration = 300) {
+        //     const steps = 20;
+        //     for (let s = 0; s <= steps; s++) {
+        //         const t = s / steps;
+        //         const ease = 0.5 - 0.5 * Math.cos(Math.PI * t);
+        //         rect.alpha = ease;
+        //         await new Promise(r => setTimeout(r, duration / steps));
+        //     }
+        //     rect.alpha = 1;
+        // }
         
-        async function fadeOutRect(rect, duration = 300) {
-            const steps = 20;
-            for (let s = 0; s <= steps; s++) {
-                const t = s / steps;
-                const ease = 0.5 - 0.5 * Math.cos(Math.PI * t);
-                rect.alpha = 1 - ease;
-                await new Promise(r => setTimeout(r, duration / steps));
-            }
-            rect.alpha = 0;
-        }
+        // async function fadeOutRect(rect, duration = 300) {
+        //     const steps = 20;
+        //     for (let s = 0; s <= steps; s++) {
+        //         const t = s / steps;
+        //         const ease = 0.5 - 0.5 * Math.cos(Math.PI * t);
+        //         rect.alpha = 1 - ease;
+        //         await new Promise(r => setTimeout(r, duration / steps));
+        //     }
+        //     rect.alpha = 0;
+        // }
         
         // Babylon.js setup
         transBabylon = null;
@@ -1727,13 +1788,22 @@ function runMain() {
                     
                     // 3D box setup
                     const spacing = 2.5;
-                    const totalLetters = message.length;
+                    // Prepare key and padded working message so visuals include X padding
+                    const isKeyNumeric = /^\d+$/.test(key);
+                    const cleanedKey = isKeyNumeric ? key.replace(/[^0-9]/g, '') : key.replace(/[^A-Za-z]/g, '').toUpperCase();
+                    const keyLength = cleanedKey.length;
+                    if (!keyLength) return;
+                    const originalLen = message.length;
+                    const padLenAnim = (keyLength - (originalLen % keyLength)) % keyLength;
+                    const workingMessage = (padWithX && padLenAnim > 0) ? (message + 'X'.repeat(padLenAnim)) : message;
+                    const totalLetters = workingMessage.length;
+                    const rows = Math.ceil(totalLetters / keyLength);
                     const startX = -((totalLetters - 1) / 2) * spacing;
                     
                     // Create boxes
                     let boxes = [];
                     for (let i = 0; i < totalLetters; i++) {
-                        const char = message[i];
+                        const char = workingMessage[i];
                         const x = startX + ((totalLetters - 1 - i) * spacing);
                         const y = 0;
                         
@@ -1758,15 +1828,16 @@ function runMain() {
                         material.diffuseColor = new BABYLON.Color3.FromHexString("#00ffff");
                         material.emissiveColor = new BABYLON.Color3.FromHexString("#00ffff");
                         box.material = material;
+                        // Hide padded X boxes until placement
+                        const isPad = i >= originalLen;
+                        if (isPad) {
+                            box.visibility = 0;
+                        }
                         
-                        boxes.push({ mesh: box, char: char, originalIndex: i });
+                        boxes.push({ mesh: box, char: char, originalIndex: i, isPad });
                     }
                     
-                    const keyLength = key.length;
-                    const rows = Math.ceil(totalLetters / keyLength);
-                    
                     // Calculate key order
-                    const isKeyNumeric = /^\d+$/.test(key);
                     let keyOrder;
                     if (isKeyNumeric) {
                         keyOrder = key.split('').map((ch, i) => ({ch: parseInt(ch), i}))
@@ -1796,14 +1867,19 @@ function runMain() {
                     
                     if (stopLoopRef.value) return;
                     
-                    const createKeyLabel = async (col) => {
+                    // colV is the visual grid column index (0 = leftmost visually)
+                    const createKeyLabel = async (colV) => {
                         if (stopLoopRef.value) return;
                         if (window.currentTransSessionId !== sessionId) return;
-                        if (columnsWithFirstLetter.has(col)) return;
+                        if (columnsWithFirstLetter.has(colV)) return;
+                        // Mark immediately to avoid duplicate concurrent creations
+                        columnsWithFirstLetter.add(colV);
                         
-                        const keyChar = key[col];
-                        const correctCol = keyLength - 1 - col;
-                        const targetX = (correctCol - (keyLength - 1) / 2) * spacing;
+                        // Label shows the key character that owns this visual column
+                        // visual column colV corresponds to logical column (keyLength-1 - colV)
+                        const keyChar = key[(keyLength - 1) - colV];
+                        // Place label above the actual visual column
+                        const targetX = (colV - (keyLength - 1) / 2) * spacing;
                         const targetY = (rows - 1) / 2 + 5;
                         
                         const rect = new BABYLON.GUI.Rectangle();
@@ -1828,10 +1904,15 @@ function runMain() {
                         textBlock.textVerticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
                         rect.addControl(textBlock);
                         
+                        // In rare cases GUI texture might have been disposed/recreated; guard it
+                        if (!transGuiTexture || transGuiTexture._wasDisposed) {
+                            transGuiTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+                            window.transGuiTexture = transGuiTexture;
+                        }
                         transGuiTexture.addControl(rect);
                         rect.linkOffsetY = 50;
                         
-                        const labelMesh = BABYLON.MeshBuilder.CreateBox(`key_label_mesh_${col}`, {
+                        const labelMesh = BABYLON.MeshBuilder.CreateBox(`key_label_mesh_${colV}`, {
                             width: 0.1,
                             height: 0.1,
                             depth: 0.1
@@ -1842,8 +1923,7 @@ function runMain() {
                         rect.linkWithMesh(labelMesh);
                         await fadeInRect(rect, 300);
                         
-                        columnsWithFirstLetter.add(col);
-                        const labelData = { rect, textBlock, keyChar, col, mesh: labelMesh };
+                        const labelData = { rect, textBlock, keyChar, col: colV, mesh: labelMesh };
                         keyLabels.push(labelData);
                         window.existingTransKeyLabels.push(labelData);
                     };
@@ -1890,13 +1970,25 @@ function runMain() {
                                 box.mesh.position = new BABYLON.Vector3(newX, newY, 0);
                                 
                                 if (row === 0 && progress > 0) {
-                                    const correctCol = keyLength - 1 - col;
-                                    if (!columnsWithFirstLetter.has(correctCol)) {
-                                        await createKeyLabel(correctCol);
+                                    // Ensure label is shown for this visual column
+                                    if (!columnsWithFirstLetter.has(col)) {
+                                        // fire-and-forget to avoid blocking movement
+                                        createKeyLabel(col);
                                     }
                                 }
                                 
                                 await new Promise(resolve => setTimeout(resolve, stepDelay));
+                            }
+                            // When the box reaches its grid cell, reveal padded X with a short fade-in
+                            if (box && box.isPad && box.mesh && box.mesh.visibility === 0) {
+                                const fadeSteps = 100;
+                                const fadeTotalMs = 180;
+                                for (let fs = 1; fs <= fadeSteps; fs++) {
+                                    if (stopLoopRef.value) return;
+                                    box.mesh.visibility = fs / fadeSteps;
+                                    await new Promise(r => setTimeout(r, fadeTotalMs / fadeSteps));
+                                }
+                                box.mesh.visibility = 1;
                             }
                             
                             if (boxIndex < totalLetters - 1) {
@@ -1913,15 +2005,33 @@ function runMain() {
                         
                         let ciphertext = '';
                         
-                        for (let k = 0; k < keyOrder.length; k++) {
+                        // Determine visual column order by sorting the displayed key labels per visual column
+                        let visualOrder;
+                        if (/^\d+$/.test(key)) {
+                            visualOrder = Array.from({ length: keyLength }, (_, visCol) => ({
+                                ch: parseInt(key[(keyLength - 1) - visCol]),
+                                v: visCol
+                            }))
+                            .sort((a, b) => a.ch - b.ch || a.v - b.v)
+                            .map(o => o.v);
+                        } else {
+                            visualOrder = Array.from({ length: keyLength }, (_, visCol) => ({
+                                ch: key[(keyLength - 1) - visCol],
+                                v: visCol
+                            }))
+                            .sort((a, b) => a.ch.localeCompare(b.ch) || a.v - b.v)
+                            .map(o => o.v);
+                        }
+
+                        for (const visCol of visualOrder) {
                             if (stopLoopRef.value || transCurrentAnimationId !== animationId) return;
-                            
-                            const col = keyOrder[k];
+                            // Convert visual column to logical index used in boxes array
+                            const logicalCol = (keyLength - 1) - visCol;
                             
                             for (let row = 0; row < rows; row++) {
                                 if (stopLoopRef.value || transCurrentAnimationId !== animationId) return;
                                 
-                                const boxIndex = row * keyLength + col;
+                                const boxIndex = row * keyLength + logicalCol;
                                 if (boxIndex < totalLetters) {
                                     const box = boxes[boxIndex];
                                     if (box && box.mesh) {
@@ -1940,47 +2050,47 @@ function runMain() {
                         
                         if (stopLoopRef.value || transCurrentAnimationId !== animationId) return;
                         
-                        // Show ciphertext
-                        const cipherRect = new BABYLON.GUI.Rectangle();
-                        cipherRect.width = "300px";
-                        cipherRect.height = "60px";
-                        cipherRect.cornerRadius = 10;
-                        cipherRect.color = "#00ffff";
-                        cipherRect.thickness = 3;
-                        cipherRect.background = "black";
-                        cipherRect.alpha = 0;
+                        // // Show ciphertext
+                        // const cipherRect = new BABYLON.GUI.Rectangle();
+                        // cipherRect.width = "300px";
+                        // cipherRect.height = "60px";
+                        // cipherRect.cornerRadius = 10;
+                        // cipherRect.color = "#00ffff";
+                        // cipherRect.thickness = 3;
+                        // cipherRect.background = "black";
+                        // cipherRect.alpha = 0;
                         
-                        const cipherTextBlock = new BABYLON.GUI.TextBlock();
-                        cipherTextBlock.text = `Ciphertext: ${ciphertext}`;
-                        cipherTextBlock.color = "#00ffff";
-                        cipherTextBlock.fontSize = 24;
-                        cipherTextBlock.fontWeight = "bold";
-                        cipherTextBlock.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
-                        cipherTextBlock.textVerticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
-                        cipherRect.addControl(cipherTextBlock);
+                        // const cipherTextBlock = new BABYLON.GUI.TextBlock();
+                        // cipherTextBlock.text = `Ciphertext: ${ciphertext}`;
+                        // cipherTextBlock.color = "#00ffff";
+                        // cipherTextBlock.fontSize = 24;
+                        // cipherTextBlock.fontWeight = "bold";
+                        // cipherTextBlock.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+                        // cipherTextBlock.textVerticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+                        // cipherRect.addControl(cipherTextBlock);
                         
-                        transGuiTexture.addControl(cipherRect);
-                        cipherRect.linkOffsetY = -100;
+                        // transGuiTexture.addControl(cipherRect);
+                        // cipherRect.linkOffsetY = -100;
                         
-                        const cipherMesh = BABYLON.MeshBuilder.CreateBox(`cipher_mesh`, {
-                            width: 0.1,
-                            height: 0.1,
-                            depth: 0.1
-                        }, scene);
-                        cipherMesh.position = new BABYLON.Vector3(0, 0, 0);
-                        cipherMesh.visibility = 0;
+                        // const cipherMesh = BABYLON.MeshBuilder.CreateBox(`cipher_mesh`, {
+                        //     width: 0.1,
+                        //     height: 0.1,
+                        //     depth: 0.1
+                        // }, scene);
+                        // cipherMesh.position = new BABYLON.Vector3(0, 0, 0);
+                        // cipherMesh.visibility = 0;
                         
-                        cipherRect.linkWithMesh(cipherMesh);
-                        await fadeInRect(cipherRect, 500);
+                        // cipherRect.linkWithMesh(cipherMesh);
+                        // await fadeInRect(cipherRect, 500);
                         
-                        for (let i = 0; i < 20; i++) {
-                            if (stopLoopRef.value || transCurrentAnimationId !== animationId) return;
-                            await new Promise(resolve => setTimeout(resolve, 100));
-                        }
+                        // for (let i = 0; i < 20; i++) {
+                        //     if (stopLoopRef.value || transCurrentAnimationId !== animationId) return;
+                        //     await new Promise(resolve => setTimeout(resolve, 100));
+                        // }
                         
-                        await fadeOutRect(cipherRect, 500);
-                        cipherRect.dispose();
-                        cipherMesh.dispose();
+                        // await fadeOutRect(cipherRect, 500);
+                        // cipherRect.dispose();
+                        // cipherMesh.dispose();
                     };
                     
                     await changeBoxColors();
@@ -2008,7 +2118,16 @@ function runMain() {
             async function restartTranspositionAnimation() {
                 transStopLoopRef.value = true;
                 window.currentTransSessionId = null;
+                // Get current input values
+                const plaintext = transPlaintextInput.value.toUpperCase().replace(/[^A-Z]/g, '');
+                const key = transKeyInput.value.toUpperCase().replace(/[^A-Z]/g, '');
                 
+                // Update ciphertext display
+                const ciphertextValue = document.getElementById('ciphertext-value');
+                if (ciphertextValue) {
+                    const encrypted = columnarTranspositionEncrypt(plaintext, key, padWithX);
+                    ciphertextValue.textContent = encrypted;
+                }
                 if (transGuiTexture) {
                     transGuiTexture.clear();
                 }
@@ -2060,6 +2179,16 @@ function runMain() {
                 }
                 
                 restartTranspositionAnimation();
+            });
+            padWithXCheckbox.addEventListener('change', () => {
+                padWithX = padWithXCheckbox.checked;
+                // Reset the animation state when toggled
+                if (window.transStopLoopRef) {
+                    window.transStopLoopRef.value = true;
+                }
+                if (typeof restartTranspositionAnimation === 'function') {
+                    restartTranspositionAnimation();
+                }
             });
             
             console.log('[Transposition] Modal should now be visible');
