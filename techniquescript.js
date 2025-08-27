@@ -505,63 +505,6 @@ function generateVigenereTableFromKeyword(keyword) {
     return table;
 }
 
-// Columnar Transposition encrypt helper (top-level, similar to Caesar/Vigenère helpers)
-// padWithX (optional): when true, pad plaintext with 'X' to a multiple of key length (default: true)
-function columnarTranspositionEncrypt(message, key, padWithX = true) {
-    // Normalize inputs
-    message = (message || '').replace(/[^A-Za-z]/g, '').toUpperCase();
-    key = (key || '');
-    const isKeyNumeric = /^\d+$/.test(key);
-    if (isKeyNumeric) {
-        key = key.replace(/[^0-9]/g, '');
-    } else {
-        key = key.replace(/[^A-Za-z]/g, '').toUpperCase();
-    }
-    if (!key) return message;
-
-    const cols = key.length;
-    // Pad with 'X' to a multiple of cols (optional)
-    if (padWithX) {
-        const padLen = (cols - (message.length % cols)) % cols;
-        if (padLen > 0) message = message + 'X'.repeat(padLen);
-    }
-    const rows = Math.ceil(message.length / cols);
-
-    // Fill grid row-wise
-    const grid = [];
-    let idx = 0;
-    for (let r = 0; r < rows; r++) {
-        const row = [];
-        for (let c = 0; c < cols; c++) {
-            row.push(message[idx] || '');
-            idx++;
-        }
-        grid.push(row);
-    }
-
-    // Sort key to get column order (stable by original index)
-    let keyOrder;
-    if (isKeyNumeric) {
-        keyOrder = key.split('').map((ch, i) => ({ ch: parseInt(ch), i }))
-            .sort((a, b) => a.ch - b.ch || a.i - b.i)
-            .map(obj => obj.i);
-    } else {
-        keyOrder = key.split('').map((ch, i) => ({ ch, i }))
-            .sort((a, b) => a.ch.localeCompare(b.ch) || a.i - b.i)
-            .map(obj => obj.i);
-    }
-
-    // Read columns in sorted key order
-    let ciphertext = '';
-    for (let k = 0; k < keyOrder.length; k++) {
-        const c = keyOrder[k];
-        for (let r = 0; r < rows; r++) {
-            if (grid[r][c]) ciphertext += grid[r][c];
-        }
-    }
-    return ciphertext;
-}
-
 function renderVigenereTable(table, highlightCol = -1, highlightRow = -1) {
     const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
     
@@ -625,10 +568,124 @@ function renderVigenereTable(table, highlightCol = -1, highlightRow = -1) {
     return html;
 }
 
+function columnarTranspositionEncrypt(message, key, padWithX = true) {
+    // Normalize inputs
+    message = (message || '').replace(/[^A-Za-z]/g, '').toUpperCase();
+    key = (key || '');
+    const isKeyNumeric = /^\d+$/.test(key);
+    if (isKeyNumeric) {
+        key = key.replace(/[^0-9]/g, '');
+    } else {
+        key = key.replace(/[^A-Za-z]/g, '').toUpperCase();
+    }
+    if (!key) return message;
+
+    const cols = key.length;
+    // Pad with 'X' to a multiple of cols (optional)
+    if (padWithX) {
+        const padLen = (cols - (message.length % cols)) % cols;
+        if (padLen > 0) message = message + 'X'.repeat(padLen);
+    }
+    const rows = Math.ceil(message.length / cols);
+
+    // Fill grid row-wise
+    const grid = [];
+    let idx = 0;
+    for (let r = 0; r < rows; r++) {
+        const row = [];
+        for (let c = 0; c < cols; c++) {
+            row.push(message[idx] || '');
+            idx++;
+        }
+        grid.push(row);
+    }
+
+    // Sort key to get column order (stable by original index)
+    let keyOrder;
+    if (isKeyNumeric) {
+        keyOrder = key.split('').map((ch, i) => ({ ch: parseInt(ch), i }))
+            .sort((a, b) => a.ch - b.ch || a.i - b.i)
+            .map(obj => obj.i);
+    } else {
+        keyOrder = key.split('').map((ch, i) => ({ ch, i }))
+            .sort((a, b) => a.ch.localeCompare(b.ch) || a.i - b.i)
+            .map(obj => obj.i);
+    }
+
+    // Read columns in sorted key order
+    let ciphertext = '';
+    for (let k = 0; k < keyOrder.length; k++) {
+        const c = keyOrder[k];
+        for (let r = 0; r < rows; r++) {
+            if (grid[r][c]) ciphertext += grid[r][c];
+        }
+    }
+    return ciphertext;
+}
+
 // let currentAnimationId = 0;
 // let currentAnimationPromise = null;
 
-window.addEventListener('DOMContentLoaded', () => {
+// Close warning banner functionality
+function closeWarningBanner() {
+    const banner = document.querySelector('.warning-banner');
+    if (banner) {
+        banner.style.animation = 'popOut 0.3s ease-out';
+        banner.style.opacity = '0';
+        banner.style.pointerEvents = 'none';
+        document.body.style.overflow = 'auto';
+        
+        // Remove the banner from the DOM after animation completes
+        banner.addEventListener('animationend', function handler() {
+            banner.removeEventListener('animationend', handler);
+            banner.style.display = 'none';
+        }, { once: true });
+    }
+}
+
+// Add event listener for the close button
+document.addEventListener('click', (e) => {
+    if (e.target.id === 'close-warning') {
+        closeWarningBanner();
+    }
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+    const tooltip = document.querySelector('.info-tooltip');
+    const tooltipText = document.querySelector('.tooltip-text');
+    let isTooltipOpen = false;
+
+    // Toggle tooltip on click
+    tooltip.addEventListener('click', (e) => {
+        e.stopPropagation();
+        isTooltipOpen = !isTooltipOpen;
+        updateTooltipState();
+    });
+
+    // Close tooltip when clicking outside
+    document.addEventListener('click', (e) => {
+        if (isTooltipOpen && !tooltip.contains(e.target) && !tooltipText.contains(e.target)) {
+            isTooltipOpen = false;
+            updateTooltipState();
+        }
+    });
+
+    function updateTooltipState() {
+        if (isTooltipOpen) {
+            tooltipText.style.visibility = 'visible';
+            tooltipText.style.opacity = '1';
+            document.querySelector('.info-tooltip::before').style.opacity = '1';
+            document.querySelector('.info-tooltip::before').style.visibility = 'visible';
+        } else {
+            tooltipText.style.visibility = 'hidden';
+            tooltipText.style.opacity = '0';
+            document.querySelector('.info-tooltip::before').style.opacity = '0';
+            document.querySelector('.info-tooltip::before').style.visibility = 'hidden';
+        }
+    }
+});
+
+document.addEventListener('DOMContentLoaded', () => {
     // Mini-canvas Babylon.js setup
   document.querySelectorAll('.mini-canvas').forEach(canvas => {
       const engine = new BABYLON.Engine(canvas, true, {preserveDrawingBuffer: true, stencil: true});
@@ -754,7 +811,6 @@ function runMain() {
   let vigCurrentAnimationId = 0;
   let vigCurrentAnimationPromise = null;
   let vigIsPlayingRef = { value: true };
-  // Persist Vigenère table scroll between updates; reset only when animation fully restarts
   let vigSavedScroll = { x: 0, y: 0 };
   // --- Transposition modal state ---
   let transBabylon = null;
@@ -763,6 +819,7 @@ function runMain() {
   let transInputGroup = null;
   let transCurrentAnimationId = 0;
   let transGuiTexture = null;
+  let TextContainer = null;
 
   cards.forEach(card => {
     card.addEventListener('click', function() {
@@ -1017,7 +1074,7 @@ function runMain() {
         vigControlsDiv = document.createElement('div');
         vigControlsDiv.className = 'controls';
         vigControlsDiv.style.display = 'flex';
-        vigControlsDiv.style.alignItems = 'center';
+        vigControlsDiv.style.alignItems = 'center'; 
         vigControlsDiv.style.gap = '10px';
         vigControlsDiv.style.justifyContent = 'center';
         vigControlsDiv.style.marginBottom = '10px';
@@ -1565,7 +1622,7 @@ function runMain() {
         transCanvas.width = 800;
         transCanvas.height = 500;
         transCanvas.style.width = '100%';
-        transCanvas.style.height = '400px';
+        transCanvas.style.height = '350px';
         transCanvas.style.border = '2px solid #00ffff';
         transCanvas.style.borderRadius = '10px';
         transCanvas.style.backgroundColor = 'transparent';
@@ -1630,8 +1687,7 @@ function runMain() {
         transKeyInput.pattern = '[A-Za-z]*|[0-9]*';
         styleTextbox(transKeyInput);
         
-        keyFieldGroup.appendChild(keyLabel);
-        keyFieldGroup.appendChild(transKeyInput);
+        
         
         // Toggle: Pad with X
         let padWithX = true;
@@ -1658,41 +1714,39 @@ function runMain() {
         
         padWithXGroup.appendChild(padWithXCheckbox);
         padWithXGroup.appendChild(padWithXLabel);
+
+        keyFieldGroup.appendChild(keyLabel);
+        keyFieldGroup.appendChild(transKeyInput);
+        keyFieldGroup.appendChild(padWithXGroup);
         
         // Ciphertext/Plaintext display
         // Ciphertext display
-        const ciphertextContainer = document.createElement('div');
-        ciphertextContainer.style.marginTop = '20px';
-        ciphertextContainer.style.padding = '10px';
-        ciphertextContainer.style.border = '1px solid #00ffff';
-        ciphertextContainer.style.borderRadius = '5px';
-        ciphertextContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
-        ciphertextContainer.style.color = '#00ffff';
-        ciphertextContainer.style.fontFamily = 'monospace';
-        ciphertextContainer.style.fontSize = '16px';
-        ciphertextContainer.style.whiteSpace = 'pre-wrap';
-        ciphertextContainer.style.minHeight = '30px';
+        TextContainer = document.createElement('div');
+        TextContainer.style.color = '#00ffff';
+        TextContainer.style.fontFamily = 'monospace';
+        TextContainer.style.fontSize = '16px';
+        TextContainer.style.whiteSpace = 'pre-wrap';
+        TextContainer.style.minHeight = '30px';
 
         const ciphertextLabel = document.createElement('span');
         ciphertextLabel.textContent = 'Ciphertext: ';
-        ciphertextLabel.style.fontWeight = 'bold';
-        ciphertextContainer.appendChild(ciphertextLabel);
+        styleLabel(ciphertextLabel);
+        TextContainer.appendChild(ciphertextLabel);
 
         const ciphertextValue = document.createElement('span');
         ciphertextValue.id = 'ciphertext-value';
         ciphertextValue.textContent = '';
-        ciphertextContainer.appendChild(ciphertextValue);
+        TextContainer.appendChild(ciphertextValue);
 
 
         // Assemble input group
         transInputGroup.appendChild(textFieldGroup);
         transInputGroup.appendChild(keyFieldGroup);
-        transInputGroup.appendChild(padWithXGroup);
                 
         // Insert elements into modal
         modalContent.insertBefore(transInputGroup, modalDescription.nextSibling);
-        modalContent.insertBefore(transCanvas, transInputGroup.nextSibling);
-        modalContent.insertBefore(ciphertextContainer, transCanvas.nextSibling);
+        modalContent.insertBefore(TextContainer, transInputGroup.nextSibling);
+        modalContent.insertBefore(transCanvas, TextContainer.nextSibling);
         
         // Transposition cipher functions (moved to top-level): columnarTranspositionEncrypt(message, key)
         
@@ -1763,12 +1817,22 @@ function runMain() {
                     if (transGuiTexture) {
                         transGuiTexture.clear();
                     }
+
+                    const ciphertextElement = document.getElementById('ciphertext-value');
+                    if (ciphertextElement) {
+                        ciphertextElement.textContent = '';
+                    }
                     return;
                 }
+                
                 
                 if (transCurrentAnimationId !== animationId) return;
                 
                 while (!stopLoopRef.value && transCurrentAnimationId === animationId) {
+                    const ciphertextElement = document.getElementById('ciphertext-value');
+                    if (ciphertextElement) {
+                        ciphertextElement.textContent = '';
+                    }
                     if (!message || !key) {
                         stopLoopRef.value = true;
                         break;
@@ -1999,12 +2063,109 @@ function runMain() {
                     
                     await animateToGrid();
                     
+                    // Sort columns by key
+                    const sortColumnsByKey = async () => {
+                        if (stopLoopRef.value || transCurrentAnimationId !== animationId) return;
+                        
+                        // Get the visual order of columns based on key labels
+                        let visualOrder;
+                        if (/^\d+$/.test(key)) {
+                            visualOrder = Array.from({ length: keyLength }, (_, visCol) => ({
+                                ch: parseInt(key[keyLength - 1 - visCol]),
+                                v: visCol
+                            }))
+                            .sort((a, b) => b.ch - a.ch)
+                            .map(o => o.v);
+                        } else {
+                            visualOrder = Array.from({ length: keyLength }, (_, visCol) => ({
+                                ch: key[keyLength - 1 - visCol],
+                                v: visCol
+                            }))
+                            .sort((a, b) => b.ch.localeCompare(a.ch))
+                            .map(o => o.v);
+                        }
+
+                        // Calculate target X positions for each visual column
+                        const targetPositions = visualOrder.map((visCol, newPos) => {
+                            const targetX = (newPos - (keyLength - 1) / 2) * spacing;
+                            return { visCol, targetX };
+                        });
+
+                        // Animate columns to their new positions
+                        const animationDuration = 1000; // ms
+                        const steps = 40;
+                        const stepDelay = animationDuration / steps;
+                        
+                        // Store starting positions for all boxes and labels
+                        const startPositions = new Map();
+                        
+                        // Get all key labels and their starting positions
+                        const keyLabels = window.existingTransKeyLabels || [];
+                        keyLabels.forEach(label => {
+                            if (label.mesh) {
+                                startPositions.set(`label_${label.col}`, {
+                                    mesh: label.mesh,
+                                    startX: label.mesh.position.x
+                                });
+                            }
+                        });
+                        
+                        // Get all boxes and their starting positions
+                        for (let i = 0; i < boxes.length; i++) {
+                            const box = boxes[i];
+                            if (box && box.mesh) {
+                                const row = Math.floor(i / keyLength);
+                                const visCol = (keyLength - 1) - (i % keyLength);
+                                startPositions.set(`box_${row}_${visCol}`, {
+                                    mesh: box.mesh,
+                                    startX: box.mesh.position.x
+                                });
+                            }
+                        }
+
+                        for (let step = 0; step <= steps; step++) {
+                            if (stopLoopRef.value || transCurrentAnimationId !== animationId) return;
+                            
+                            const t = step / steps;
+                            const ease = 1 - Math.pow(1 - t, 3); // Ease-out cubic
+                            
+                            // Animate boxes and labels
+                            targetPositions.forEach(({ visCol, targetX }, newPos) => {
+                                // Animate all boxes in this column
+                                for (let row = 0; row < rows; row++) {
+                                    const key = `box_${row}_${visCol}`;
+                                    const data = startPositions.get(key);
+                                    if (data) {
+                                        const newX = data.startX + (targetX - data.startX) * ease;
+                                        data.mesh.position.x = newX;
+                                    }
+                                }
+                                
+                                // Animate the corresponding label
+                                const labelKey = `label_${visCol}`;
+                                const labelData = startPositions.get(labelKey);
+                                if (labelData) {
+                                    const newX = labelData.startX + (targetX - labelData.startX) * ease;
+                                    labelData.mesh.position.x = newX;
+                                }
+                            });
+                            
+                            await new Promise(r => setTimeout(r, stepDelay));
+                        }
+                    };
+                    
+                    await sortColumnsByKey();
+                    
                     // Highlight columns
                     const changeBoxColors = async () => {
                         if (stopLoopRef.value || transCurrentAnimationId !== animationId) return;
                         
                         let ciphertext = '';
-                        
+                        // Update ciphertext display
+                        const ciphertextElement = document.getElementById('ciphertext-value');
+                        if (ciphertextElement) {
+                            ciphertextElement.textContent = '';
+                        }
                         // Determine visual column order by sorting the displayed key labels per visual column
                         let visualOrder;
                         if (/^\d+$/.test(key)) {
@@ -2042,6 +2203,11 @@ function runMain() {
                                         box.mesh.material = highlightMaterial;
                                         
                                         ciphertext += box.char;
+                                        // Update the ciphertext display in real-time
+                                        const ciphertextElement = document.getElementById('ciphertext-value');
+                                        if (ciphertextElement) {
+                                            ciphertextElement.textContent = ciphertext;
+                                        }
                                         await new Promise(resolve => setTimeout(resolve, 500));
                                     }
                                 }
@@ -2122,12 +2288,7 @@ function runMain() {
                 const plaintext = transPlaintextInput.value.toUpperCase().replace(/[^A-Z]/g, '');
                 const key = transKeyInput.value.toUpperCase().replace(/[^A-Z]/g, '');
                 
-                // Update ciphertext display
-                const ciphertextValue = document.getElementById('ciphertext-value');
-                if (ciphertextValue) {
-                    const encrypted = columnarTranspositionEncrypt(plaintext, key, padWithX);
-                    ciphertextValue.textContent = encrypted;
-                }
+                
                 if (transGuiTexture) {
                     transGuiTexture.clear();
                 }
@@ -2160,6 +2321,10 @@ function runMain() {
                 if (e.target.value !== filtered) {
                     e.target.value = filtered;
                 }
+                const ciphertextElement = document.getElementById('ciphertext-value');
+                if (ciphertextElement) {
+                    ciphertextElement.textContent = '';
+                }
                 restartTranspositionAnimation();
             });
             
@@ -2178,10 +2343,18 @@ function runMain() {
                     e.target.value = e.target.value.toUpperCase();
                 }
                 
+                const ciphertextElement = document.getElementById('ciphertext-value');
+                if (ciphertextElement) {
+                    ciphertextElement.textContent = '';
+                }
                 restartTranspositionAnimation();
             });
             padWithXCheckbox.addEventListener('change', () => {
                 padWithX = padWithXCheckbox.checked;
+                const ciphertextElement = document.getElementById('ciphertext-value');
+                if (ciphertextElement) {
+                    ciphertextElement.textContent = '';
+                }
                 // Reset the animation state when toggled
                 if (window.transStopLoopRef) {
                     window.transStopLoopRef.value = true;
@@ -2280,6 +2453,12 @@ function runMain() {
         window.transGuiTexture.dispose();
         window.transGuiTexture = null;
       }
+
+      if(TextContainer && TextContainer.parentNode){
+        TextContainer.parentNode.removeChild(TextContainer);
+        TextContainer = null;
+      }
+
       if (window.existingTransKeyLabels) {
         window.existingTransKeyLabels.forEach(label => {
           if (label.rect) label.rect.dispose();

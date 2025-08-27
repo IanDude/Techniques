@@ -1,3 +1,277 @@
+@keyframes popIn {
+    from { opacity: 0; transform: scale(0.8); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes popOut {
+    from { opacity: 1; transform: scale(1); }
+    to { opacity: 0; transform: scale(0.8); }
+}
+
+.warning-banner {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.956);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: popIn 0.3s ease-out;
+}
+.warning-banner-content {
+    background: #111;
+    border: 2px solid #0ff;
+    border-radius: 16px;
+    padding: 1.5rem;
+    width: 90%;
+    max-width: 700px;
+    height: 700px;
+    overflow-y: auto;
+    box-shadow: 0 0 40px #0ff8;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    animation: popIn 0.3s ease-out;
+    box-sizing: border-box;
+    word-break: break-word;
+    color: #fff;
+    margin: 2rem 0;
+}
+
+.warning-banner h2 {
+    color: #0ff;
+    margin: 0 0 1rem 0;
+    border-bottom: 1px solid #0ff;
+    padding-bottom: 0.5rem;
+    width: 100%;
+    text-align: center;
+}
+
+.warning-banner h3 {
+    color: #0ff;
+    margin: 1.5rem 0 0.5rem 0;
+    font-size: 1.2em;
+}
+
+.warning-banner ul {
+    padding-left: 1.5rem;
+    margin: 0.5rem 0;
+}
+
+.warning-banner li {
+    margin: 0.5rem 0;
+    line-height: 1.5;
+}
+
+.password-tips {
+    width: 100%;
+    margin: 1rem 0;
+}
+
+.btn-close {
+    position: absolute;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(45deg, #00ffff, #0066ff);
+    border: none;
+    padding: 10px 20px;
+    font-size: 1em;
+    cursor: pointer;
+    transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+    color: white;
+    border-radius: 5px;
+    text-transform: uppercase;
+    transform-origin: center;
+    letter-spacing: 2px;
+    font-family: 'Orbitron', sans-serif;
+    z-index: 10;
+    overflow: hidden;
+}
+
+/* Info tooltip styles */
+.info-tooltip {
+    position: relative;
+    display: inline-block;
+    cursor: pointer;
+    margin-left: 8px;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+.info-tooltip {
+    color: #0ff;
+    transition: text-shadow 0.2s ease;
+}
+
+.info-tooltip:hover {
+    text-shadow: 0 0 8px #0ff;
+}
+
+/* Reset for tooltip content */
+.info-tooltip .tooltip-text,
+.info-tooltip .tooltip-text * {
+    text-shadow: none !important;
+    color: #fff !important;
+}
+
+.info-tooltip .tooltip-text {
+    visibility: hidden;
+    width: 500px;
+    background-color: rgba(17, 17, 17, 0.98);
+    color: #fff;
+    text-align: left;
+    border-radius: 8px;
+    padding: 0;
+    position: fixed;
+    z-index: 1100;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border: 1px solid #0ff;
+    box-shadow: 0 0 25px rgba(0, 255, 255, 0.3);
+    opacity: 0;
+    transition: opacity 0.3s, visibility 0.3s;
+    font-size: 0.9em;
+    line-height: 1.4;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+}
+
+.password-words-table {
+    width: 100%;
+    border-collapse: collapse;
+    display: flex;
+    flex-direction: column;
+    max-height: 100%;
+}
+
+.table-scroll {
+    overflow-y: auto;
+    max-height: 70vh;
+    scrollbar-width: thin;
+    scrollbar-color: #0ff #0a3d62;
+    padding: 1rem;
+}
+
+.table-scroll::-webkit-scrollbar {
+    width: 8px;
+}
+
+.table-scroll::-webkit-scrollbar-track {
+    background: #0a3d62;
+    border-radius: 4px;
+}
+
+.table-scroll::-webkit-scrollbar-thumb {
+    background-color: #0ff;
+    border-radius: 4px;
+}
+
+.table-scroll::-webkit-scrollbar-thumb:hover {
+    background-color: #0dd;
+}
+
+.password-words-table .table-header {
+    background-color: #0a3d62;
+    color: #0ff;
+    padding: 12px;
+    text-align: center;
+    font-weight: bold;
+    border-bottom: 2px solid #0ff;
+}
+
+.password-words-table .table-row {
+    display: flex;
+    border-bottom: 1px solid #1a3a52;
+    min-height: 32px;
+    align-items: center;
+}
+
+.password-words-table .table-row:last-child {
+    border-bottom: none;
+}
+
+.password-words-table .table-row span {
+    flex: 1;
+    padding: 6px 8px;
+    text-align: center;
+    border-right: 1px solid #1a3a52;
+    font-family: 'Courier New', monospace;
+    color: #f0f0f0;
+    font-size: 0.9em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.password-words-table .table-row span:last-child {
+    border-right: none;
+}
+
+.password-words-table .table-row:nth-child(even) {
+    background-color: #0d1a26;
+}
+
+.password-words-table .table-row:hover {
+    background-color: #1a3a52;
+    color: #fff;
+}
+
+/* Tooltip styles - controlled by JavaScript */
+.info-tooltip .tooltip-text {
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.3s, visibility 0.3s;
+    pointer-events: auto;
+}
+
+.info-tooltip::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 1099;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s, visibility 0.3s;
+    pointer-events: none;
+}
+
+.btn-close::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transform: rotate(45deg);
+    animation: buttonShine 3s infinite;
+}
+
+.btn-close:hover {
+    transform: translateX(-50%) scale(1.05);
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.8);
+    animation: buttonPulse 1s infinite;
+}
+
+.warning-banner p {
+    margin: 0;
+    font-size: 1.5em;
+    max-width: 800px;
+    line-height: 1.5;
+}
+
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background-image: url('techniqueassets/background.png'), linear-gradient(to bottom right, #20A4DC, #54053B);
