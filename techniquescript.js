@@ -623,9 +623,6 @@ function columnarTranspositionEncrypt(message, key, padWithX = true) {
     return ciphertext;
 }
 
-// let currentAnimationId = 0;
-// let currentAnimationPromise = null;
-
 // Close warning banner functionality
 function closeWarningBanner() {
     const banner = document.querySelector('.warning-banner');
@@ -643,9 +640,22 @@ function closeWarningBanner() {
     }
 }
 
-// Add event listener for the close button
+function helpButton() {
+    const banner = document.querySelector('.warning-banner');
+    if (banner) {
+        banner.style.display = 'flex';
+        banner.style.animation = 'popIn 0.3s ease-out';
+        banner.style.opacity = '1';
+        banner.style.pointerEvents = 'auto';
+        document.body.style.overflow = 'hidden'; // Prevent scrolling when banner is open
+    }
+}
+
+// Add event listeners for help and close buttons
 document.addEventListener('click', (e) => {
-    if (e.target.id === 'close-warning') {
+    if (e.target.closest('.help-button')) {
+        helpButton();
+    } else if (e.target.id === 'close-warning') {
         closeWarningBanner();
     }
 });
@@ -1728,15 +1738,16 @@ function runMain() {
         TextContainer.style.whiteSpace = 'pre-wrap';
         TextContainer.style.minHeight = '30px';
 
-        const ciphertextLabel = document.createElement('span');
-        ciphertextLabel.textContent = 'Ciphertext: ';
-        styleLabel(ciphertextLabel);
-        TextContainer.appendChild(ciphertextLabel);
+        const displayTextLabel = document.createElement('span');
+        displayTextLabel.textContent = 'Ciphertext: ';
+        
+        styleLabel(displayTextLabel);
+        TextContainer.appendChild(displayTextLabel);
 
-        const ciphertextValue = document.createElement('span');
-        ciphertextValue.id = 'ciphertext-value';
-        ciphertextValue.textContent = '';
-        TextContainer.appendChild(ciphertextValue);
+        const displayTextValue = document.createElement('span');
+        displayTextValue.id = 'display-text-value';
+        displayTextValue.textContent = '';
+        TextContainer.appendChild(displayTextValue);
 
 
         // Assemble input group
@@ -1818,7 +1829,7 @@ function runMain() {
                         transGuiTexture.clear();
                     }
 
-                    const ciphertextElement = document.getElementById('ciphertext-value');
+                    const ciphertextElement = document.getElementById('display-text-value');
                     if (ciphertextElement) {
                         ciphertextElement.textContent = '';
                     }
@@ -1829,7 +1840,7 @@ function runMain() {
                 if (transCurrentAnimationId !== animationId) return;
                 
                 while (!stopLoopRef.value && transCurrentAnimationId === animationId) {
-                    const ciphertextElement = document.getElementById('ciphertext-value');
+                    const ciphertextElement = document.getElementById('display-text-value');
                     if (ciphertextElement) {
                         ciphertextElement.textContent = '';
                     }
@@ -2162,7 +2173,7 @@ function runMain() {
                         
                         let ciphertext = '';
                         // Update ciphertext display
-                        const ciphertextElement = document.getElementById('ciphertext-value');
+                        const ciphertextElement = document.getElementById('display-text-value');
                         if (ciphertextElement) {
                             ciphertextElement.textContent = '';
                         }
@@ -2204,7 +2215,7 @@ function runMain() {
                                         
                                         ciphertext += box.char;
                                         // Update the ciphertext display in real-time
-                                        const ciphertextElement = document.getElementById('ciphertext-value');
+                                        const ciphertextElement = document.getElementById('display-text-value');
                                         if (ciphertextElement) {
                                             ciphertextElement.textContent = ciphertext;
                                         }
@@ -2321,7 +2332,7 @@ function runMain() {
                 if (e.target.value !== filtered) {
                     e.target.value = filtered;
                 }
-                const ciphertextElement = document.getElementById('ciphertext-value');
+                const ciphertextElement = document.getElementById('display-text-value');
                 if (ciphertextElement) {
                     ciphertextElement.textContent = '';
                 }
@@ -2343,7 +2354,7 @@ function runMain() {
                     e.target.value = e.target.value.toUpperCase();
                 }
                 
-                const ciphertextElement = document.getElementById('ciphertext-value');
+                const ciphertextElement = document.getElementById('display-text-value');
                 if (ciphertextElement) {
                     ciphertextElement.textContent = '';
                 }
@@ -2351,7 +2362,7 @@ function runMain() {
             });
             padWithXCheckbox.addEventListener('change', () => {
                 padWithX = padWithXCheckbox.checked;
-                const ciphertextElement = document.getElementById('ciphertext-value');
+                const ciphertextElement = document.getElementById('display-text-value');
                 if (ciphertextElement) {
                     ciphertextElement.textContent = '';
                 }

@@ -15,8 +15,10 @@
 <body>
     <div class="warning-banner">
         <div class="warning-banner-content">
-            <h2>⚠️ Password Security Warning</h2>
-            <p>This is a demo application. For security, please avoid using real or sensitive information.</p>
+            <img src="techniqueassets/warning.png" alt="Warning" class="warning-icon">
+            <h2>Password Security Warning</h2>
+            <p>When creating a password, you’ll want to avoid words or patterns that are easy to guess. 
+                Hackers often use dictionaries, leaked password lists, and common substitution tricks.</p>
             
             <div class="password-tips">
                 <h3>Common Password Pitfalls to Avoid: <span class="info-tooltip">Examples<span class="tooltip-text">
@@ -113,9 +115,7 @@
                     <li>✅ Never reuse passwords across different sites</li>
                 </ul>
             </div>
-            <div class="btn-close-container">
-                <button id="close-warning" class="btn-close">I Understand</button>
-            </div>
+            <button id="close-warning" class="btn-close">I Understand</button>
             
         </div>
     </div>
@@ -159,6 +159,7 @@
             </div>
         </main>
     </div>
+    <a class="help-button">🛈</a>
     <div id="card-modal" class="card-modal" style="display:none;">
       <div class="card-modal-content">
         <span class="card-modal-close">&times;</span>

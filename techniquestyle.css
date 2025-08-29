@@ -41,7 +41,7 @@
 
 .warning-banner h2 {
     color: #0ff;
-    margin: 0 0 1rem 0;
+    margin: 0 0 .5rem 0;
     border-bottom: 1px solid #0ff;
     padding-bottom: 0.5rem;
     width: 100%;
@@ -50,7 +50,7 @@
 
 .warning-banner h3 {
     color: #0ff;
-    margin: 1.5rem 0 0.5rem 0;
+    margin: 0.5rem 0 0.5rem 0;
     font-size: 1.2em;
 }
 
@@ -62,6 +62,11 @@
 .warning-banner li {
     margin: 0.5rem 0;
     line-height: 1.5;
+}
+.warning-banner .warning-icon {
+    width: 75px;
+    height: 75px;
+    margin: 0 auto 0.5rem auto;
 }
 
 .password-tips {
@@ -267,7 +272,7 @@
 
 .warning-banner p {
     margin: 0;
-    font-size: 1.5em;
+    font-size: 1.25em;
     max-width: 800px;
     line-height: 1.5;
 }
@@ -501,6 +506,18 @@ body {
     background-color: #6c757d;
     color: #adb5bd;
     cursor: not-allowed;
+}
+.help-button {
+    position: absolute;
+    bottom: 1rem;
+    left: 2rem;
+    border: none;
+    font-size: 1.25em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: white;
+    z-index: 10;
+    overflow: hidden;
 }
 
 .back-button {
