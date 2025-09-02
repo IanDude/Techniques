@@ -2220,16 +2220,10 @@ function runMain() {
                 // Show pad-with-X option in encrypt mode
                 padWithXGroup.style.display = 'flex';
             } else {
-                if(padWithX){
-                    textLabel.textContent = 'Ciphertext:';
-                    displayTextLabel.textContent = 'Plaintext: ';
-                    transPlaintextInput.value = 'EOHLLX';
-                }
-                else{
-                    textLabel.textContent = 'Ciphertext:';
-                    displayTextLabel.textContent = 'Plaintext: ';
-                    transPlaintextInput.value = 'EOHLL';
-                }
+                textLabel.textContent = 'Ciphertext:';
+                displayTextLabel.textContent = 'Plaintext: ';
+                transPlaintextInput.value = 'EOHLLX';
+                padWithX = false;
                 // Hide pad-with-X option in decrypt mode
                 padWithXGroup.style.display = 'none';
             }
