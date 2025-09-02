@@ -2217,6 +2217,8 @@ function runMain() {
                 textLabel.textContent = 'Plaintext:';
                 displayTextLabel.textContent = 'Ciphertext: ';
                 transPlaintextInput.value = 'HELLO';
+                // Show pad-with-X option in encrypt mode
+                padWithXGroup.style.display = 'flex';
             } else {
                 if(padWithX){
                     textLabel.textContent = 'Ciphertext:';
@@ -2228,6 +2230,8 @@ function runMain() {
                     displayTextLabel.textContent = 'Plaintext: ';
                     transPlaintextInput.value = 'EOHLL';
                 }
+                // Hide pad-with-X option in decrypt mode
+                padWithXGroup.style.display = 'none';
             }
         }
         
@@ -2711,17 +2715,16 @@ function runMain() {
                     if (transGuiTexture) {
                         transGuiTexture.clear();
                     }
-
+            
                     const ciphertextElement = document.getElementById('display-text-value');
                     if (ciphertextElement) {
                         ciphertextElement.textContent = '';
                     }
                     return;
                 }
-                
-                
+            
                 if (transCurrentAnimationId !== animationId) return;
-                
+            
                 while (!stopLoopRef.value && transCurrentAnimationId === animationId) {
                     const ciphertextElement = document.getElementById('display-text-value');
                     if (ciphertextElement) {
@@ -2731,7 +2734,7 @@ function runMain() {
                         stopLoopRef.value = true;
                         break;
                     }
-                    
+            
                     // Clear scene
                     scene.meshes.slice().forEach(mesh => mesh.dispose());
                     if (scene._rootLayer) scene._rootLayer.dispose();
@@ -2740,10 +2743,10 @@ function runMain() {
                         transGuiTexture.dispose();
                     }
                     transGuiTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
-                    
+            
                     // Store reference globally for cleanup
                     window.transGuiTexture = transGuiTexture;
-                    
+            
                     // 3D box setup
                     const spacing = 2.5;
                     // Prepare key and padded working message so visuals include X padding
@@ -2757,20 +2760,20 @@ function runMain() {
                     const totalLetters = workingMessage.length;
                     const rows = Math.ceil(totalLetters / keyLength);
                     const startX = -((totalLetters - 1) / 2) * spacing;
-                    
+            
                     // Create boxes
                     let boxes = [];
                     for (let i = 0; i < totalLetters; i++) {
                         const char = workingMessage[i];
                         const x = startX + ((totalLetters - 1 - i) * spacing);
                         const y = 0;
-                        
+            
                         const faceUV = [];
                         faceUV[0] = new BABYLON.Vector4(1, 1, 0, 0);
                         for (let j = 1; j < 6; j++) {
                             faceUV[j] = new BABYLON.Vector4(0, 0, 0, 0);
                         }
-                        
+            
                         const box = BABYLON.MeshBuilder.CreateBox(`box_${i}`, {
                             width: 1.5,
                             height: 2,
@@ -2778,7 +2781,7 @@ function runMain() {
                             faceUV: faceUV
                         }, scene);
                         box.position = new BABYLON.Vector3(x, y, 0);
-                        
+            
                         const material = new BABYLON.StandardMaterial(`mat_${i}`, scene);
                         const texture = new BABYLON.DynamicTexture(`tex_${i}`, { width: 128, height: 128 }, scene, false);
                         texture.drawText(char, null, null, "bold 36px Arial", "#4527a0", "#ede7f6", true);
@@ -2791,27 +2794,27 @@ function runMain() {
                         if (isPad) {
                             box.visibility = 0;
                         }
-                        
+            
                         boxes.push({ mesh: box, char: char, originalIndex: i, isPad });
                     }
-                    
+            
                     // Calculate key order
                     let keyOrder;
                     if (isKeyNumeric) {
-                        keyOrder = key.split('').map((ch, i) => ({ch: parseInt(ch), i}))
+                        keyOrder = key.split('').map((ch, i) => ({ ch: parseInt(ch), i }))
                             .sort((a, b) => a.ch - b.ch || a.i - b.i)
                             .map(obj => obj.i);
                     } else {
-                        keyOrder = key.split('').map((ch, i) => ({ch, i}))
+                        keyOrder = key.split('').map((ch, i) => ({ ch, i }))
                             .sort((a, b) => a.ch.localeCompare(b.ch) || a.i - b.i)
                             .map(obj => obj.i);
                     }
-                    
+            
                     // Track key labels
                     let columnsWithFirstLetter = new Set();
                     let keyLabels = [];
                     const sessionId = Date.now() + Math.random();
-                    
+            
                     if (window.existingTransKeyLabels) {
                         window.existingTransKeyLabels.forEach(label => {
                             if (label.rect) label.rect.dispose();
@@ -2819,12 +2822,12 @@ function runMain() {
                         });
                     }
                     window.existingTransKeyLabels = [];
-                    
+            
                     stopLoopRef.value = false;
                     window.currentTransSessionId = sessionId;
-                    
+            
                     if (stopLoopRef.value) return;
-                    
+            
                     // colV is the visual grid column index (0 = leftmost visually)
                     const createKeyLabelDecrypt = async (colV) => {
                         if (stopLoopRef.value) return;
@@ -2833,12 +2836,32 @@ function runMain() {
                         // Mark immediately to avoid duplicate concurrent creations
                         columnsWithFirstLetter.add(colV);
                         
-                        // Label shows the key character that owns this visual column
-                        const keyChar = key[(keyLength - 1) - colV];
-                        // Place label above the actual visual column
-                        const targetX = (colV - (keyLength - 1) / 2) * spacing;
+                        // Determine rank (position) of this column in ascending key order (EKY)
+                        let ascOrder;
+                        if (/^\d+$/.test(key)) {
+                            ascOrder = Array.from({ length: keyLength }, (_, visCol) => ({
+                                ch: parseInt(key[visCol]),
+                                v: visCol
+                            }))
+                                .sort((a, b) => a.ch - b.ch || a.v - b.v)
+                                .map(o => o.v);
+                        } else {
+                            ascOrder = Array.from({ length: keyLength }, (_, visCol) => ({
+                                ch: key[visCol],
+                                v: visCol
+                            }))
+                                .sort((a, b) => a.ch.localeCompare(b.ch) || a.v - b.v)
+                                .map(o => o.v);
+                        }
+                        const rank = ascOrder.indexOf(colV);
+                        // Invert EKY horizontal position (mirror columns)
+                        const invRank = (keyLength - 1) - rank;
+
+                        // Use inverted EKY order for initial label placement
+                        const keyChar = key[colV];
+                        const targetX = (invRank - (keyLength - 1) / 2) * spacing;
                         const targetY = (rows - 1) / 2 + 5;
-                        
+            
                         const rect = new BABYLON.GUI.Rectangle();
                         rect.width = "50px";
                         rect.height = "40px";
@@ -2851,7 +2874,7 @@ function runMain() {
                         rect.paddingRight = "2px";
                         rect.paddingTop = "4px";
                         rect.paddingBottom = "4px";
-                        
+            
                         const textBlock = new BABYLON.GUI.TextBlock();
                         textBlock.text = keyChar;
                         textBlock.color = "#00ffff";
@@ -2860,15 +2883,14 @@ function runMain() {
                         textBlock.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
                         textBlock.textVerticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
                         rect.addControl(textBlock);
-                        
-                        // In rare cases GUI texture might have been disposed/recreated; guard it
+            
                         if (!transGuiTexture || transGuiTexture._wasDisposed) {
                             transGuiTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
                             window.transGuiTexture = transGuiTexture;
                         }
                         transGuiTexture.addControl(rect);
                         rect.linkOffsetY = 50;
-                        
+            
                         const labelMesh = BABYLON.MeshBuilder.CreateBox(`key_label_mesh_${colV}`, {
                             width: 0.1,
                             height: 0.1,
@@ -2876,70 +2898,108 @@ function runMain() {
                         }, scene);
                         labelMesh.position = new BABYLON.Vector3(targetX, targetY, 0);
                         labelMesh.visibility = 0;
-                        
+            
                         rect.linkWithMesh(labelMesh);
                         await fadeInRect(rect, 300);
-                        
+            
                         const labelData = { rect, textBlock, keyChar, col: colV, mesh: labelMesh };
                         keyLabels.push(labelData);
                         window.existingTransKeyLabels.push(labelData);
                     };
-                    
-                    // Animate to grid
+            
+                    // MODIFIED: True decryption placement. Fill columns in ascending key order with ciphertext sequence, top-to-bottom.
                     const animateToGridDecrypt = async () => {
                         const animationDuration = 800;
                         const steps = 40;
                         const stepDelay = animationDuration / steps;
                         const delayBetweenBoxes = 200;
-                        
-                        let targetPositions = [];
+
+                        // Ascending visual order by key (ties broken by visual index)
+                        let visOrderAsc;
+                        if (/^\d+$/.test(key)) {
+                            visOrderAsc = Array.from({ length: keyLength }, (_, visCol) => ({
+                                ch: parseInt(key[visCol]),
+                                v: visCol
+                            }))
+                                .sort((a, b) => a.ch - b.ch || a.v - b.v)
+                                .map(o => o.v);
+                        } else {
+                            visOrderAsc = Array.from({ length: keyLength }, (_, visCol) => ({
+                                ch: key[visCol],
+                                v: visCol
+                            }))
+                                .sort((a, b) => a.ch.localeCompare(b.ch) || a.v - b.v)
+                                .map(o => o.v);
+                        }
+
+                        // Determine column heights for decryption (no padding: earlier columns in key get +1)
+                        const base = Math.floor(totalLetters / keyLength);
+                        const rem = totalLetters % keyLength;
+                        const colHeights = Array(keyLength).fill(base);
+                        if (padWithX && base * keyLength !== totalLetters) {
+                            // When padding is on, workingMessage is padded to full rectangle already
+                            for (let i = 0; i < keyLength; i++) colHeights[i] = rows;
+                        } else {
+                            for (let k = 0; k < rem; k++) {
+                                const visCol = visOrderAsc[k];
+                                colHeights[visCol] = base + 1;
+                            }
+                        }
+
+                        // Build target slots in ascending key order (EKY visual order)
+                        const targetSlots = [];
+                        for (const visCol of visOrderAsc) {
+                            // Determine rank of this visual column in EKY order and mirror it
+                            const rank = visOrderAsc.indexOf(visCol);
+                            const invRank = (keyLength - 1) - rank;
+                            const targetX = (invRank - (keyLength - 1) / 2) * spacing;
+                            const startYTop = (rows - 1) / 2 + 2;
+                            for (let r = 0; r < colHeights[visCol]; r++) {
+                                const targetY = startYTop - r * 2.15;
+                                targetSlots.push({ visCol, row: r, x: targetX, y: targetY });
+                            }
+                        }
+
+                        // Assign each ciphertext box to its target slot
+                        const assigned = [];
                         for (let i = 0; i < totalLetters; i++) {
-                            const row = Math.floor(i / keyLength);
-                            const col = (keyLength - 1) - (i % keyLength);
-                            const targetX = (col - (keyLength - 1) / 2) * spacing;
-                            const targetY = (rows - 1) / 2 - row * 2.15 + 2;
-                            
-                            targetPositions.push({
-                                index: i,
-                                targetX: targetX,
-                                targetY: targetY,
-                                currentX: startX + ((totalLetters - 1 - i) * spacing),
-                                currentY: 0
+                            const slot = targetSlots[i];
+                            const b = boxes[i];
+                            b.assignedCol = slot.visCol;
+                            b.assignedRow = slot.row;
+                            assigned.push({
+                                box: b,
+                                targetPos: { x: slot.x, y: slot.y },
+                                startX: startX + ((totalLetters - 1 - i) * spacing),
+                                startY: 0,
+                                isFirstInCol: slot.row === 0
                             });
                         }
-                        
-                        for (let boxIndex = 0; boxIndex < totalLetters; boxIndex++) {
+
+                        // Animate in the same order ciphertext is assigned (which groups by ascending-key columns)
+                        for (let i = 0; i < assigned.length; i++) {
                             if (stopLoopRef.value) return;
-                            
-                            const boxData = targetPositions[boxIndex];
-                            const box = boxes[boxIndex];
-                            const row = Math.floor(boxIndex / keyLength);
-                            const col = (keyLength - 1) - (boxIndex % keyLength);
-                            
+
+                            const { box, targetPos, startX: sx, startY: sy, isFirstInCol } = assigned[i];
+
                             for (let step = 0; step <= steps; step++) {
                                 if (stopLoopRef.value) return;
-                                
                                 const progress = step / steps;
                                 const easeProgress = 0.5 - 0.5 * Math.cos(Math.PI * progress);
-                                const newX = boxData.currentX + (boxData.targetX - boxData.currentX) * easeProgress;
-                                const newY = boxData.currentY + (boxData.targetY - boxData.currentY) * easeProgress;
-                                
+                                const newX = sx + (targetPos.x - sx) * easeProgress;
+                                const newY = sy + (targetPos.y - sy) * easeProgress;
                                 box.mesh.position = new BABYLON.Vector3(newX, newY, 0);
-                                
-                                if (row === 0 && progress > 0) {
-                                    // Ensure label is shown for this visual column
-                                    if (!columnsWithFirstLetter.has(col)) {
-                                        // fire-and-forget to avoid blocking movement
-                                        createKeyLabelDecrypt(col);
-                                    }
+
+                                if (isFirstInCol && progress > 0.3 && !columnsWithFirstLetter.has(box.assignedCol)) {
+                                    createKeyLabelDecrypt(box.assignedCol);
                                 }
-                                
+
                                 await new Promise(resolve => setTimeout(resolve, stepDelay));
                             }
-                            // When the box reaches its grid cell, reveal padded X with a short fade-in
-                            if (box && box.isPad && box.mesh && box.mesh.visibility === 0) {
-                                const fadeSteps = 100;
-                                const fadeTotalMs = 180;
+
+                            if (box.isPad && box.mesh.visibility === 0) {
+                                const fadeSteps = 20;
+                                const fadeTotalMs = 300;
                                 for (let fs = 1; fs <= fadeSteps; fs++) {
                                     if (stopLoopRef.value) return;
                                     box.mesh.visibility = fs / fadeSteps;
@@ -2947,180 +3007,126 @@ function runMain() {
                                 }
                                 box.mesh.visibility = 1;
                             }
-                            
-                            if (boxIndex < totalLetters - 1) {
+
+                            if (i < assigned.length - 1) {
                                 await new Promise(resolve => setTimeout(resolve, delayBetweenBoxes));
                             }
                         }
                     };
-                    
+            
                     await animateToGridDecrypt();
-                    
-                    // Sort columns by key
-                    const sortColumnsByKeyDecrypt = async () => {
-                        if (stopLoopRef.value || transCurrentAnimationId !== animationId) return;
-                        
-                        // Get the visual order of columns based on key labels
-                        let visualOrder;
-                        if (/^\d+$/.test(key)) {
-                            visualOrder = Array.from({ length: keyLength }, (_, visCol) => ({
-                                ch: parseInt(key[keyLength - 1 - visCol]),
-                                v: visCol
-                            }))
-                            .sort((a, b) => b.ch - a.ch)
-                            .map(o => o.v);
-                        } else {
-                            visualOrder = Array.from({ length: keyLength }, (_, visCol) => ({
-                                ch: key[keyLength - 1 - visCol],
-                                v: visCol
-                            }))
-                            .sort((a, b) => b.ch.localeCompare(a.ch))
-                            .map(o => o.v);
-                        }
 
-                        // Calculate target X positions for each visual column
-                        const targetPositions = visualOrder.map((visCol, newPos) => {
-                            const targetX = (newPos - (keyLength - 1) / 2) * spacing;
-                            return { visCol, targetX };
-                        });
-
-                        // Animate columns to their new positions
-                        const animationDuration = 1000; // ms
-                        const steps = 40;
+                    // Phase 2: reorder columns back to natural KEY order (left-to-right by visual index)
+                    const reorderColumnsToNatural = async () => {
+                        const animationDuration = 600;
+                        const steps = 30;
                         const stepDelay = animationDuration / steps;
-                        
-                        // Store starting positions for all boxes and labels
-                        const startPositions = new Map();
-                        
-                        // Get all key labels and their starting positions
-                        const keyLabels = window.existingTransKeyLabels || [];
-                        keyLabels.forEach(label => {
-                            if (label.mesh) {
-                                startPositions.set(`label_${label.col}`, {
-                                    mesh: label.mesh,
-                                    startX: label.mesh.position.x
-                                });
-                            }
-                        });
-                        
-                        // Get all boxes and their starting positions
-                        for (let i = 0; i < boxes.length; i++) {
-                            const box = boxes[i];
-                            if (box && box.mesh) {
-                                const row = Math.floor(i / keyLength);
-                                const visCol = (keyLength - 1) - (i % keyLength);
-                                startPositions.set(`box_${row}_${visCol}`, {
-                                    mesh: box.mesh,
-                                    startX: box.mesh.position.x
-                                });
-                            }
+
+                        // Precompute EKY asc order once
+                        let ascOrder;
+                        if (/^\d+$/.test(key)) {
+                            ascOrder = Array.from({ length: keyLength }, (_, visCol) => ({
+                                ch: parseInt(key[visCol]),
+                                v: visCol
+                            }))
+                                .sort((a, b) => a.ch - b.ch || a.v - b.v)
+                                .map(o => o.v);
+                        } else {
+                            ascOrder = Array.from({ length: keyLength }, (_, visCol) => ({
+                                ch: key[visCol],
+                                v: visCol
+                            }))
+                                .sort((a, b) => a.ch.localeCompare(b.ch) || a.v - b.v)
+                                .map(o => o.v);
                         }
+
+                        // Natural x position for each visual column
+                        const colToNatX = Array.from({ length: keyLength }, (_, visCol) => (visCol - (keyLength - 1) / 2) * spacing);
+                        // Inverted natural (mirrored KEY) x position for each visual column
+                        const colToNatXInv = Array.from({ length: keyLength }, (_, visCol) => ((keyLength - 1 - visCol) - (keyLength - 1) / 2) * spacing);
 
                         for (let step = 0; step <= steps; step++) {
                             if (stopLoopRef.value || transCurrentAnimationId !== animationId) return;
-                            
-                            const t = step / steps;
-                            const ease = 1 - Math.pow(1 - t, 3); // Ease-out cubic
-                            
-                            // Animate boxes and labels
-                            targetPositions.forEach(({ visCol, targetX }, newPos) => {
-                                // Animate all boxes in this column
-                                for (let row = 0; row < rows; row++) {
-                                    const key = `box_${row}_${visCol}`;
-                                    const data = startPositions.get(key);
-                                    if (data) {
-                                        const newX = data.startX + (targetX - data.startX) * ease;
-                                        data.mesh.position.x = newX;
-                                    }
-                                }
-                                
-                                // Animate the corresponding label
-                                const labelKey = `label_${visCol}`;
-                                const labelData = startPositions.get(labelKey);
-                                if (labelData) {
-                                    const newX = labelData.startX + (targetX - labelData.startX) * ease;
-                                    labelData.mesh.position.x = newX;
-                                }
-                            });
-                            
+                            const progress = step / steps;
+                            const ease = 0.5 - 0.5 * Math.cos(Math.PI * progress);
+
+                            // Move boxes from inverted EKY x to mirrored KEY x
+                            for (const b of boxes) {
+                                const rank = ascOrder.indexOf(b.assignedCol);
+                                const invRank = (keyLength - 1) - rank;
+                                const xAsc = (invRank - (keyLength - 1) / 2) * spacing;
+                                const xNat = colToNatXInv[b.assignedCol];
+                                b.mesh.position.x = xAsc + (xNat - xAsc) * ease;
+                            }
+
+                            // Move key labels similarly
+                            for (const lbl of keyLabels) {
+                                if (!lbl.mesh) continue;
+                                const rank = ascOrder.indexOf(lbl.col);
+                                const invRank = (keyLength - 1) - rank;
+                                const xAsc = (invRank - (keyLength - 1) / 2) * spacing;
+                                const xNat = colToNatXInv[lbl.col];
+                                lbl.mesh.position.x = xAsc + (xNat - xAsc) * ease;
+                            }
+
                             await new Promise(r => setTimeout(r, stepDelay));
                         }
                     };
-                    
-                    await sortColumnsByKeyDecrypt();
-                    
-                    // Highlight columns
+
+                    await reorderColumnsToNatural();
+            
+                    // HIGHLIGHT PHASE
                     const changeBoxColorsDecrypt = async () => {
                         if (stopLoopRef.value || transCurrentAnimationId !== animationId) return;
-                        
-                        let ciphertext = '';
-                        // Update ciphertext display
-                        const ciphertextElement = document.getElementById('display-text-value');
-                        if (ciphertextElement) {
-                            ciphertextElement.textContent = '';
-                        }
-                        // Determine visual column order by sorting the displayed key labels per visual column
-                        let visualOrder;
-                        if (/^\d+$/.test(key)) {
-                            visualOrder = Array.from({ length: keyLength }, (_, visCol) => ({
-                                ch: parseInt(key[(keyLength - 1) - visCol]),
-                                v: visCol
-                            }))
-                            .sort((a, b) => a.ch - b.ch || a.v - b.v)
-                            .map(o => o.v);
-                        } else {
-                            visualOrder = Array.from({ length: keyLength }, (_, visCol) => ({
-                                ch: key[(keyLength - 1) - visCol],
-                                v: visCol
-                            }))
-                            .sort((a, b) => a.ch.localeCompare(b.ch) || a.v - b.v)
-                            .map(o => o.v);
-                        }
 
-                        for (const visCol of visualOrder) {
-                            if (stopLoopRef.value || transCurrentAnimationId !== animationId) return;
-                            // Convert visual column to logical index used in boxes array
-                            const logicalCol = (keyLength - 1) - visCol;
-                            
-                            for (let row = 0; row < rows; row++) {
+                        // Prepare plaintext output target
+                        let plaintext = '';
+                        const outputEl = document.getElementById('display-text-value');
+                        if (outputEl) outputEl.textContent = '';
+
+                        // Build a grid lookup (row, col) -> box
+                        const grid = Array.from({ length: rows }, () => Array(keyLength).fill(null));
+                        boxes.forEach((b) => {
+                            if (typeof b.assignedRow === 'number' && typeof b.assignedCol === 'number') {
+                                if (b.assignedRow < rows && b.assignedCol < keyLength) {
+                                    grid[b.assignedRow][b.assignedCol] = b;
+                                }
+                            }
+                        });
+
+                        // Read plaintext row-wise, left-to-right
+                        for (let r = 0; r < rows; r++) {
+                            for (let c = 0; c < keyLength; c++) {
                                 if (stopLoopRef.value || transCurrentAnimationId !== animationId) return;
-                                
-                                const boxIndex = row * keyLength + logicalCol;
-                                if (boxIndex < totalLetters) {
-                                    const box = boxes[boxIndex];
-                                    if (box && box.mesh) {
-                                        const highlightMaterial = new BABYLON.StandardMaterial(`highlight_mat_${boxIndex}`, scene);
-                                        highlightMaterial.diffuseColor = new BABYLON.Color3.FromHexString("#ff0000");
-                                        highlightMaterial.emissiveColor = new BABYLON.Color3.FromHexString("#ff0000");
-                                        highlightMaterial.diffuseTexture = box.mesh.material.diffuseTexture;
-                                        box.mesh.material = highlightMaterial;
-                                        
-                                        ciphertext += box.char;
-                                        // Update the ciphertext display in real-time
-                                        const ciphertextElement = document.getElementById('display-text-value');
-                                        if (ciphertextElement) {
-                                            ciphertextElement.textContent = ciphertext;
-                                        }
-                                        await new Promise(resolve => setTimeout(resolve, 500));
-                                    }
+                                const b = grid[r][c];
+                                if (b && b.mesh) {
+                                    const highlightMaterial = new BABYLON.StandardMaterial(`highlight_mat_${r}_${c}`, scene);
+                                    highlightMaterial.diffuseColor = new BABYLON.Color3.FromHexString("#ff0000");
+                                    highlightMaterial.emissiveColor = new BABYLON.Color3.FromHexString("#ff0000");
+                                    highlightMaterial.diffuseTexture = b.mesh.material.diffuseTexture;
+                                    b.mesh.material = highlightMaterial;
+
+                                    plaintext += b.char;
+                                    if (outputEl) outputEl.textContent = plaintext;
+                                    await new Promise(resolve => setTimeout(resolve, 500));
                                 }
                             }
                         }
-                        
-                        if (stopLoopRef.value || transCurrentAnimationId !== animationId) return;
 
+                        if (stopLoopRef.value || transCurrentAnimationId !== animationId) return;
                     };
-                    
+            
                     await changeBoxColorsDecrypt();
-                    
+            
                     if (stopLoopRef.value || transCurrentAnimationId !== animationId) return;
-                    
+            
                     for (let i = 0; i < 20; i++) {
                         if (stopLoopRef.value || transCurrentAnimationId !== animationId) return;
                         await new Promise(resolve => setTimeout(resolve, 100));
                     }
                 }
             }
+            
 
             // Initial animation
             transCurrentAnimationId++;
