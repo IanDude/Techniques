@@ -277,7 +277,382 @@ async function runCaesarAnimationEncrypt({ scene, camera, engine }, shift, stopL
         if (stopLoopRef.value) break;
     }
 }
+async function runCaesarAnimationEncryptASCII({ scene, camera, engine }, shift, stopLoopRef, message = "HELLO") {
+    // If message is empty, don't animate
+    if (!message || message.trim() === "") {
+        return;
+    }
+    while (!stopLoopRef.value) {
+        // Remove all meshes and GUI
+        scene.meshes.slice().forEach(mesh => mesh.dispose());
+        if (scene._rootLayer) scene._rootLayer.dispose();
+        if (guiTexture){
+          guiTexture.dispose();
+        }
+        guiTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+        const advancedTexture = guiTexture;
+        const letterBoxes = [];
+        const letterBubbles = [];
+        const spacing = 3;
+        const startX = ((message.length - 1) / 2) * spacing;
+        for (let i = 0; i < message.length; i++) {
+            const char = message[i];
+            const x = startX - (i * spacing);
+            const faceUV = [];
+            faceUV[0] = new BABYLON.Vector4(1, 1, 0, 0);
+            for (let j = 1; j < 6; j++) {
+                faceUV[j] = new BABYLON.Vector4(0, 0, 0, 0);
+            }
+            const box = BABYLON.MeshBuilder.CreateBox("letterBox" + i, {
+                width: 1.8,
+                height: 2.5,
+                depth: 1,
+                faceUV: faceUV
+            }, scene);
+            box.position = new BABYLON.Vector3(x, 0, 0);
+            const material = new BABYLON.StandardMaterial("letterMat" + i, scene);
+            const texture = new BABYLON.DynamicTexture("letterTexture" + i, { width: 128, height: 128 }, scene, false);
+            texture.drawText(char, null, null, "bold 48px Arial", "#2d3a4b", "#e0e7ef", true);
+            material.diffuseTexture = texture;
+            material.diffuseColor = new BABYLON.Color3.FromHexString("#a200ff");
+            material.emissiveColor = new BABYLON.Color3.FromHexString("#a200ff");
+            box.material = material;
+            letterBoxes.push({
+                mesh: box,
+                texture: texture,
+                material: material,
+                char: char,
+                originalChar: char,
+                index: i,
+                suppressAnimation: false
+            });
+            const rect = new BABYLON.GUI.Rectangle();
+            rect.width = "auto";
+            rect.height = "40px";
+            rect.cornerRadius = 10;
+            rect.color = "#00ffff";
+            rect.thickness = 2;
+            rect.background = "white";
+            rect.alpha = 0;
+            rect.adaptWidthToChildren = true;
+            const textBlock = new BABYLON.GUI.TextBlock();
+            textBlock.text = "";
+            textBlock.color = "black";
+            textBlock.fontSize = 20;
+            rect.addControl(textBlock);
+            advancedTexture.addControl(rect);
+            rect.linkWithMesh(box);
+            rect.linkOffsetY = -70;
+            letterBubbles.push({ rect, textBlock });
+        }
+        // Animate
+        const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        for (let i = 0; i < letterBoxes.length; i++) {
+            const letterBox = letterBoxes[i];
+            letterBox.suppressAnimation = true;
+            const char = letterBox.originalChar.toUpperCase();
+            const charIndex = alphabet.indexOf(char);
+            if (charIndex === -1) continue;
+            letterBox.material.emissiveColor = new BABYLON.Color3.FromHexString("#9dfafa"); // Highlight Color
+            letterBox.material.diffuseColor = new BABYLON.Color3.FromHexString("#9dfafa"); // Highlight Color
+            const riseHeight = 2;
+            const duration = 1000;
+            const animSteps = 30;
+            const animDelay = duration / animSteps;
+            const startY = letterBox.mesh.position.y;
+            const startRot = letterBox.mesh.rotation.y;
+            for (let t = 0; t <= animSteps; t++) {
+                const progress = t / animSteps;
+                const ease = 0.5 - 0.5 * Math.cos(Math.PI * progress);
+                const y = startY + riseHeight * ease;
+                letterBox.mesh.position.y = y;
+                letterBox.mesh.rotation.y = startRot + 2 * Math.PI * progress;
+                await new Promise(resolve => setTimeout(resolve, animDelay));
+            }
+            letterBox.mesh.position.y = startY + riseHeight;
+            letterBox.mesh.rotation.y = startRot + 2 * Math.PI;
+            const shifted = caesarShiftEncrypt(char, shift);
+            const shiftedIndex = alphabet.indexOf(shifted);
+            const stackPanel = new BABYLON.GUI.StackPanel();
+            stackPanel.isVertical = false;
+            stackPanel.height = "54px";
+            stackPanel.width = "100%";
+            stackPanel.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+            stackPanel.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+            stackPanel.adaptWidthToChildren = true;
+            stackPanel.paddingLeft = "5px";
+            stackPanel.paddingRight = "5px";
+            stackPanel.background = "#15162e";
+            const letterBlocks = [];
+            for (let j = 0; j < alphabet.length; j++) {
+                const letterBlock = new BABYLON.GUI.TextBlock();
+                letterBlock.text = alphabet[j];
+                letterBlock.width = "18px";
+                letterBlock.height = "30px";
+                letterBlock.fontSize = 18;
+                letterBlock.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+                letterBlock.textVerticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+                letterBlock.paddingLeft = "0px";
+                letterBlock.paddingRight = "0px";
+                letterBlock.marginLeft = "1px";
+                letterBlock.marginRight = "1px";
+                letterBlock.color = (j === charIndex) ? "#3b82f6" : "#2d3a4b";
+                letterBlock.fontWeight = (j === charIndex) ? "bold" : "normal";
+                letterBlock.background = (j === charIndex) ? "#e0e7ef" : "";
+                stackPanel.addControl(letterBlock);
+                letterBlocks.push(letterBlock);
+            }
+            letterBubbles[i].rect.clearControls();
+            letterBubbles[i].rect.width = "auto";
+            letterBubbles[i].rect.adaptWidthToChildren = true;
+            letterBubbles[i].rect.height = "54px";
+            letterBubbles[i].rect.background = "#15162e";
+            letterBubbles[i].rect.addControl(stackPanel);
+            await fadeInRect(letterBubbles[i].rect, 300);
+            // Clamp bubble to canvas horizontally using actual width
+            let bubbleWidth = letterBubbles[i].rect._currentMeasure ? letterBubbles[i].rect._currentMeasure.width : 420;
+            const engineWidth = engine.getRenderWidth();
+            const meshScreenPos = BABYLON.Vector3.Project(
+                letterBoxes[i].mesh.position,
+                BABYLON.Matrix.Identity(),
+                scene.getTransformMatrix(),
+                camera.viewport.toGlobal(engine.getRenderWidth(), engine.getRenderHeight())
+            );
+            let bubbleLeft = meshScreenPos.x - bubbleWidth / 2;
+            let bubbleRight = meshScreenPos.x + bubbleWidth / 2;
+            if (bubbleLeft < 0) {
+                letterBubbles[i].rect.linkOffsetX = -bubbleLeft;
+            } else if (bubbleRight > engineWidth) {
+                letterBubbles[i].rect.linkOffsetX = engineWidth - bubbleRight;
+            } else {
+                letterBubbles[i].rect.linkOffsetX = 0;
+            }
+            let steps = (shiftedIndex - charIndex + 26) % 26;
+            let current = charIndex;
+            for (let s = 0; s <= steps; s++) {
+                for (let j = 0; j < alphabet.length; j++) {
+                    letterBlocks[j].color = "#57f2ed";
+                    letterBlocks[j].fontWeight = "normal";
+                    letterBlocks[j].background = "";
+                }
+                letterBlocks[current].color = (s === steps) ? "#03ff13" : "#ff0d05";
+                letterBlocks[current].fontWeight = "bold";
+                letterBlocks[current].background = (s === steps) ? "#22c55e" : "#3b82f6";
+                await new Promise(resolve => setTimeout(resolve, 480));
+                current = (current + 1) % 26;
+            }
+            letterBox.texture.clear();
+            letterBox.texture.drawText(shifted, null, null, "bold 48px Arial", "#000000", "#e0e7ef", true);
+            letterBox.char = shifted;
+            await new Promise(resolve => setTimeout(resolve, 400));
+            await fadeOutRect(letterBubbles[i].rect, 300);
+            letterBubbles[i].rect.clearControls();
+            for (let t = 0; t <= animSteps; t++) {
+                const progress = t / animSteps;
+                const ease = 0.5 - 0.5 * Math.cos(Math.PI * progress);
+                const y = startY + riseHeight * (1 - ease);
+                letterBox.mesh.position.y = y;
+                letterBox.mesh.rotation.y = startRot + 2 * Math.PI * progress;
+                await new Promise(resolve => setTimeout(resolve, animDelay));
+            }
+            letterBox.mesh.position.y = startY;
+            letterBox.mesh.rotation.y = startRot;
+            letterBox.material.emissiveColor = new BABYLON.Color3.FromHexString("#00ffff");
+            letterBox.suppressAnimation = false;
+        }
+        await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second pause
+        if (stopLoopRef.value) break;
+    }
+}
 async function runCaesarAnimationDecrypt({ scene, camera, engine }, shift, stopLoopRef, message = "KHOOR") {
+    // If message is empty, don't animate
+    if (!message || message.trim() === "") {
+        return;
+    }
+    while (!stopLoopRef.value) {
+        // Remove all meshes and GUI
+        scene.meshes.slice().forEach(mesh => mesh.dispose());
+        if (scene._rootLayer) scene._rootLayer.dispose();
+        if (guiTexture){
+          guiTexture.dispose();
+        }
+        guiTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+        const advancedTexture = guiTexture;
+        const letterBoxes = [];
+        const letterBubbles = [];
+        const spacing = 3;
+        const startX = ((message.length - 1) / 2) * spacing;
+        for (let i = 0; i < message.length; i++) {
+            const char = message[i];
+            const x = startX - (i * spacing);
+            const faceUV = [];
+            faceUV[0] = new BABYLON.Vector4(1, 1, 0, 0);
+            for (let j = 1; j < 6; j++) {
+                faceUV[j] = new BABYLON.Vector4(0, 0, 0, 0);
+            }
+            const box = BABYLON.MeshBuilder.CreateBox("letterBox" + i, {
+                width: 1.8,
+                height: 2.5,
+                depth: 1,
+                faceUV: faceUV
+            }, scene);
+            box.position = new BABYLON.Vector3(x, 0, 0);
+            const material = new BABYLON.StandardMaterial("letterMat" + i, scene);
+            const texture = new BABYLON.DynamicTexture("letterTexture" + i, { width: 128, height: 128 }, scene, false);
+            texture.drawText(char, null, null, "bold 48px Arial", "#2d3a4b", "#e0e7ef", true);
+            material.diffuseTexture = texture;
+            material.diffuseColor = new BABYLON.Color3.FromHexString("#00ffff");
+            material.emissiveColor = new BABYLON.Color3.FromHexString("#00ffff");
+            box.material = material;
+            letterBoxes.push({
+                mesh: box,
+                texture: texture,
+                material: material,
+                char: char,
+                originalChar: char,
+                index: i,
+                suppressAnimation: false
+            });
+            const rect = new BABYLON.GUI.Rectangle();
+            rect.width = "auto";
+            rect.height = "40px";
+            rect.cornerRadius = 10;
+            rect.color = "#00ffff";
+            rect.thickness = 2;
+            rect.background = "white";
+            rect.alpha = 0;
+            rect.adaptWidthToChildren = true;
+            const textBlock = new BABYLON.GUI.TextBlock();
+            textBlock.text = "";
+            textBlock.color = "black";
+            textBlock.fontSize = 20;
+            rect.addControl(textBlock);
+            advancedTexture.addControl(rect);
+            rect.linkWithMesh(box);
+            rect.linkOffsetY = -70;
+            letterBubbles.push({ rect, textBlock });
+        }
+        // Animate
+        const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        for (let i = 0; i < letterBoxes.length; i++) {
+            const letterBox = letterBoxes[i];
+            letterBox.suppressAnimation = true;
+            const char = letterBox.originalChar.toUpperCase();
+            const charIndex = alphabet.indexOf(char);
+            if (charIndex === -1) continue;
+            letterBox.material.emissiveColor = new BABYLON.Color3.FromHexString("#9dfafa"); // Highlight Color
+            letterBox.material.diffuseColor = new BABYLON.Color3.FromHexString("#9dfafa"); // Highlight Color
+            const riseHeight = 2;
+            const duration = 1000;
+            const animSteps = 30;
+            const animDelay = duration / animSteps;
+            const startY = letterBox.mesh.position.y;
+            const startRot = letterBox.mesh.rotation.y;
+            for (let t = 0; t <= animSteps; t++) {
+                const progress = t / animSteps;
+                const ease = 0.5 - 0.5 * Math.cos(Math.PI * progress);
+                const y = startY + riseHeight * ease;
+                letterBox.mesh.position.y = y;
+                letterBox.mesh.rotation.y = startRot + 2 * Math.PI * progress;
+                await new Promise(resolve => setTimeout(resolve, animDelay));
+            }
+            letterBox.mesh.position.y = startY + riseHeight;
+            letterBox.mesh.rotation.y = startRot + 2 * Math.PI;
+            const decrypted = caesarShiftDecrypt(char, shift);
+            const decryptedIndex = alphabet.indexOf(decrypted);
+            const stackPanel = new BABYLON.GUI.StackPanel();
+            stackPanel.isVertical = false;
+            stackPanel.height = "54px";
+            stackPanel.width = "100%";
+            stackPanel.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+            stackPanel.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+            stackPanel.adaptWidthToChildren = true;
+            stackPanel.paddingLeft = "5px";
+            stackPanel.paddingRight = "5px";
+            stackPanel.background = "#15162e";
+            const letterBlocks = [];
+            for (let j = 0; j < alphabet.length; j++) {
+                const letterBlock = new BABYLON.GUI.TextBlock();
+                letterBlock.text = alphabet[j];
+                letterBlock.width = "18px";
+                letterBlock.height = "30px";
+                letterBlock.fontSize = 18;
+                letterBlock.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+                letterBlock.textVerticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+                letterBlock.paddingLeft = "0px";
+                letterBlock.paddingRight = "0px";
+                letterBlock.marginLeft = "1px";
+                letterBlock.marginRight = "1px";
+                letterBlock.color = (j === charIndex) ? "#3b82f6" : "#2d3a4b";
+                letterBlock.fontWeight = (j === charIndex) ? "bold" : "normal";
+                letterBlock.background = (j === charIndex) ? "#e0e7ef" : "";
+                stackPanel.addControl(letterBlock);
+                letterBlocks.push(letterBlock);
+            }
+            letterBubbles[i].rect.clearControls();
+            letterBubbles[i].rect.width = "auto";
+            letterBubbles[i].rect.adaptWidthToChildren = true;
+            letterBubbles[i].rect.height = "54px";
+            letterBubbles[i].rect.background = "#15162e";
+            letterBubbles[i].rect.addControl(stackPanel);
+            await fadeInRect(letterBubbles[i].rect, 300);
+            // Clamp bubble to canvas horizontally using actual width
+            let bubbleWidth = letterBubbles[i].rect._currentMeasure ? letterBubbles[i].rect._currentMeasure.width : 420;
+            const engineWidth = engine.getRenderWidth();
+            const meshScreenPos = BABYLON.Vector3.Project(
+                letterBoxes[i].mesh.position,
+                BABYLON.Matrix.Identity(),
+                scene.getTransformMatrix(),
+                camera.viewport.toGlobal(engine.getRenderWidth(), engine.getRenderHeight())
+            );
+            let bubbleLeft = meshScreenPos.x - bubbleWidth / 2;
+            let bubbleRight = meshScreenPos.x + bubbleWidth / 2;
+            if (bubbleLeft < 0) {
+                letterBubbles[i].rect.linkOffsetX = -bubbleLeft;
+            } else if (bubbleRight > engineWidth) {
+                letterBubbles[i].rect.linkOffsetX = engineWidth - bubbleRight;
+            } else {
+                letterBubbles[i].rect.linkOffsetX = 0;
+            }
+            // For decryption, we go backwards through the alphabet
+            let steps = (charIndex - decryptedIndex + 26) % 26;
+            let current = charIndex;
+            for (let s = 0; s <= steps; s++) {
+                for (let j = 0; j < alphabet.length; j++) {
+                    letterBlocks[j].color = "#57f2ed";
+                    letterBlocks[j].fontWeight = "normal";
+                    letterBlocks[j].background = "";
+                }
+                letterBlocks[current].color = (s === steps) ? "#03ff13" : "#ff0d05";
+                letterBlocks[current].fontWeight = "bold";
+                letterBlocks[current].background = (s === steps) ? "#22c55e" : "#3b82f6";
+                await new Promise(resolve => setTimeout(resolve, 480));
+                current = (current - 1 + 26) % 26; // Go backwards for decryption
+            }
+            letterBox.texture.clear();
+            letterBox.texture.drawText(decrypted, null, null, "bold 48px Arial", "#000000", "#e0e7ef", true);
+            letterBox.char = decrypted;
+            await new Promise(resolve => setTimeout(resolve, 400));
+            await fadeOutRect(letterBubbles[i].rect, 300);
+            letterBubbles[i].rect.clearControls();
+            for (let t = 0; t <= animSteps; t++) {
+                const progress = t / animSteps;
+                const ease = 0.5 - 0.5 * Math.cos(Math.PI * progress);
+                const y = startY + riseHeight * (1 - ease);
+                letterBox.mesh.position.y = y;
+                letterBox.mesh.rotation.y = startRot + 2 * Math.PI * progress;
+                await new Promise(resolve => setTimeout(resolve, animDelay));
+            }
+            letterBox.mesh.position.y = startY;
+            letterBox.mesh.rotation.y = startRot;
+            letterBox.material.emissiveColor = new BABYLON.Color3.FromHexString("#00ffff");
+            letterBox.suppressAnimation = false;
+        }
+        await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second pause
+        if (stopLoopRef.value) break;
+    }
+}
+async function runCaesarAnimationDecryptASCII({ scene, camera, engine }, shift, stopLoopRef, message = "KHOOR") {
     // If message is empty, don't animate
     if (!message || message.trim() === "") {
         return;
@@ -621,7 +996,14 @@ function columnarTranspositionEncrypt(message, key, padWithX = true) {
 // Close warning banner functionality
 function closeWarningBanner() {
     const banner = document.querySelector('.warning-banner');
+    const dontShowAgain = document.getElementById('dont-show-again');
+    
     if (banner) {
+        // Update localStorage based on checkbox state
+        if (dontShowAgain) {
+            localStorage.setItem('hideWarningBanner', dontShowAgain.checked ? 'true' : 'false');
+        }
+        
         banner.style.animation = 'popOut 0.3s ease-out';
         banner.style.opacity = '0';
         banner.style.pointerEvents = 'none';
@@ -637,7 +1019,13 @@ function closeWarningBanner() {
 
 function helpButton() {
     const banner = document.querySelector('.warning-banner');
+    const dontShowAgain = document.getElementById('dont-show-again');
+    
     if (banner) {
+        // Sync checkbox with localStorage state
+        if (dontShowAgain) {
+            dontShowAgain.checked = localStorage.getItem('hideWarningBanner') === 'true';
+        }
         banner.style.display = 'flex';
         banner.style.animation = 'popIn 0.3s ease-out';
         banner.style.opacity = '1';
@@ -790,6 +1178,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Remove the nested DOMContentLoaded handler and use runMain
 function runMain() {
+  // Check if user previously chose not to see the warning banner
+  const hideBanner = localStorage.getItem('hideWarningBanner') === 'true';
+  const warningBanner = document.querySelector('.warning-banner');
+  if (hideBanner && warningBanner) {
+    warningBanner.style.display = 'none';
+    document.body.style.overflow = 'auto';
+  }
+
   console.log('[Debug] runMain running');
   const cards = document.querySelectorAll('.card:not(.coming-soon)');
   console.log('[Debug] Cards found:', cards);
@@ -807,6 +1203,7 @@ function runMain() {
   let caesarPlaintextInput = null;
   let caesarShiftInput = null;
   let caesarShiftValue = null;
+  let caesarASCII = false;
   // --- Vigenère modal state ---
   let vigBabylon = null;
   let vigCanvas = null;
@@ -854,7 +1251,7 @@ function runMain() {
         caesarInputGroup.style.width = 'fit-content';
         caesarInputGroup.style.display = 'flex';
         caesarInputGroup.style.flexDirection = 'row';
-        caesarInputGroup.style.alignItems = 'center';
+        caesarInputGroup.style.alignItems = 'flex-start';
         caesarInputGroup.style.justifyContent = 'center';
         caesarInputGroup.style.gap = '24px';
         caesarInputGroup.style.padding = '12px 16px';
@@ -920,9 +1317,36 @@ function runMain() {
     
         sliderContainer.appendChild(caesarShiftInput);
         sliderContainer.appendChild(caesarShiftValue);
-    
+
+        // Toggle: Use ASCI
+        const useASCIGroup = document.createElement('div');
+        useASCIGroup.style.display = 'flex';
+        useASCIGroup.style.flexDirection = 'row';
+        useASCIGroup.style.alignItems = 'center';
+        useASCIGroup.style.gap = '8px';
+        
+        const useASCIILabel = document.createElement('label');
+        useASCIILabel.htmlFor = 'caesar-use-asci';
+        useASCIILabel.style.fontSize = '12px';
+        useASCIILabel.textContent = 'Use ASCII table of code';
+        useASCIILabel.style.fontWeight = 'normal';
+        useASCIILabel.style.color = '#00ffff';
+        
+        const useASCIICheckbox = document.createElement('input');
+        useASCIICheckbox.type = 'checkbox';
+        useASCIICheckbox.id = 'caesar-use-asci';
+        useASCIICheckbox.checked = caesarASCII;
+        useASCIICheckbox.style.width = '18px';
+        useASCIICheckbox.style.height = '18px';
+        useASCIICheckbox.style.accentColor = '#00ffff';
+        useASCIICheckbox.style.backgroundColor = '#000';
+        
+        useASCIGroup.appendChild(useASCIICheckbox);
+        useASCIGroup.appendChild(useASCIILabel);
+
         sliderFieldGroup.appendChild(sliderLabel);
         sliderFieldGroup.appendChild(sliderContainer);
+        sliderFieldGroup.appendChild(useASCIGroup);
 
         // Mode toggle field with label
         const caesarModeGroup = document.createElement('div');
@@ -982,19 +1406,37 @@ function runMain() {
                     caesarStopLoopRef.value = false;
                     const mode = caesarModeSelect.value;
                     if (mode === 'encrypt') {
-                        runCaesarAnimationEncrypt(
-                            caesarBabylon, 
-                            parseInt(caesarShiftInput.value, 10), 
-                            caesarStopLoopRef, 
-                            caesarPlaintextInput.value
-                        );
+                        if(caesarASCII){
+                            runCaesarAnimationEncryptASCII(
+                                caesarBabylon, 
+                                parseInt(caesarShiftInput.value, 10), 
+                                caesarStopLoopRef, 
+                                caesarPlaintextInput.value
+                            );
+                        }else{
+                            runCaesarAnimationEncrypt(
+                                caesarBabylon, 
+                                parseInt(caesarShiftInput.value, 10), 
+                                caesarStopLoopRef, 
+                                caesarPlaintextInput.value
+                            );
+                        }
                     } else {
-                        runCaesarAnimationDecrypt(
-                            caesarBabylon, 
-                            parseInt(caesarShiftInput.value, 10), 
-                            caesarStopLoopRef, 
-                            caesarPlaintextInput.value
-                        );
+                        if(caesarASCII){
+                            runCaesarAnimationDecryptASCII(
+                                caesarBabylon, 
+                                parseInt(caesarShiftInput.value, 10), 
+                                caesarStopLoopRef, 
+                                caesarPlaintextInput.value
+                            );
+                        }else{
+                            runCaesarAnimationDecrypt(
+                                caesarBabylon, 
+                                parseInt(caesarShiftInput.value, 10), 
+                                caesarStopLoopRef, 
+                                caesarPlaintextInput.value
+                            );
+                        }
                     }
                 })();
             }
@@ -1041,6 +1483,16 @@ function runMain() {
                 }
                 return; // Don't restart animation
             }
+                restartCaesarAnimation();
+            });
+            useASCIICheckbox.addEventListener('change', () => {
+                const sliderMax = document.getElementById('caesar-shift').max;
+                caesarASCII = useASCIICheckbox.checked;
+                if(caesarASCII){
+                    document.getElementById('caesar-shift').max = 255;
+                }else{
+                    document.getElementById('caesar-shift').max = 25;
+                }
                 restartCaesarAnimation();
             });
     
@@ -2851,6 +3303,7 @@ function runMain() {
         caesarBabylon.engine.stopRenderLoop();
         caesarBabylon.engine.dispose();
         caesarBabylon = null;
+        caesarASCII = false;
       }
       if (caesarCanvas && caesarCanvas.parentNode) caesarCanvas.parentNode.removeChild(caesarCanvas);
       if (caesarInputGroup && caesarInputGroup.parentNode) caesarInputGroup.parentNode.removeChild(caesarInputGroup);

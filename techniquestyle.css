@@ -75,25 +75,95 @@
 }
 
 .btn-close {
-    position: absolute;
-    bottom: 2rem;
-    left: 50%;
-    transform: translateX(-50%);
+    position: relative; /* Change from absolute to relative */
+    margin: 0 auto; /* Center horizontally with auto margins */
     background: linear-gradient(45deg, #00ffff, #0066ff);
     border: none;
     padding: 10px 20px;
     font-size: 1em;
     cursor: pointer;
-    transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
     color: white;
     border-radius: 5px;
     text-transform: uppercase;
-    transform-origin: center;
     letter-spacing: 2px;
     font-family: 'Orbitron', sans-serif;
     z-index: 10;
     overflow: hidden;
+    display: block; /* Ensure it's a block element for auto margins to work */
 }
+
+.dont-show-again {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
+.checkbox-container {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #fff;
+    font-size: 0.9rem;
+}
+
+/* Style the checkbox */
+.checkbox-container input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border: 2px solid #00ffff;
+    border-radius: 3px;
+    background: transparent;
+    position: relative;
+    cursor: pointer;
+}
+
+.checkbox-container input[type="checkbox"]:checked {
+    background: #00ffff;
+}
+
+.checkbox-container input[type="checkbox"]:checked::after {
+    content: "✓";
+    position: absolute;
+    color: #000;
+    font-size: 14px;
+    font-weight: bold;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.checkbox-container label {
+    cursor: pointer;
+}
+
+/* Remove the absolute positioning from the button shine effect */
+.btn-close::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transform: rotate(45deg);
+    animation: buttonShine 3s infinite;
+}
+
+.btn-close:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.8);
+    animation: buttonPulse 1s infinite;
+}
+
+/* Remove the transform from the hover effect since we're not using absolute positioning anymore */
+.btn-close:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.8);
+}
+
 
 /* Info tooltip styles */
 .info-tooltip {
@@ -224,9 +294,15 @@
     background-color: #0d1a26;
 }
 
-.password-words-table .table-row:hover {
+.password-words-table .table-row span:hover {
     background-color: #1a3a52;
     color: #fff;
+    cursor: pointer;
+    position: relative;
+    z-index: 1;
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+    transform: scale(1.02);
+    transition: all 0.2s ease;
 }
 
 /* Tooltip styles - controlled by JavaScript */
@@ -252,23 +328,6 @@
     pointer-events: none;
 }
 
-.btn-close::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-    transform: rotate(45deg);
-    animation: buttonShine 3s infinite;
-}
-
-.btn-close:hover {
-    transform: translateX(-50%) scale(1.05);
-    box-shadow: 0 0 20px rgba(0, 255, 255, 0.8);
-    animation: buttonPulse 1s infinite;
-}
 
 .warning-banner p {
     margin: 0;
