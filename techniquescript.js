@@ -883,7 +883,7 @@ function renderVigenereTable(table, highlightCol = -1, highlightRow = -1) {
     const maxHeight = needsVerticalScroll ? '150px' : '150px';
     
     // Create wrapper container for table and bubbles
-    let html = `<div style="position: relative; width: 500px; margin: 0 auto;">`;
+    let html = `<div style="position: relative; width: 600px; margin: 0 auto; text-align: center;">`;
     
     // Add KEY bubble (initially hidden, will show on horizontal scroll)
     if (highlightRow >= 0 && highlightRow < table.length) {
@@ -905,10 +905,10 @@ function renderVigenereTable(table, highlightCol = -1, highlightRow = -1) {
         </div>`;
     }
     
-    // Add the scrollable table container
-    html += `<div style="width: 500px; overflow-x: auto; overflow-y: ${needsVerticalScroll ? 'auto' : 'visible'}; border: 2px solid #00ffff; border-radius: 5px; max-height: ${maxHeight}; position: relative; display: block;">`;
+    // Add the scrollable table container with hidden scrollbars (600px width to match canvas)
+    html += `<div class="vigenere-scroll-container" style="width: 600px; overflow-x: auto; overflow-y: ${needsVerticalScroll ? 'auto' : 'visible'}; border: 2px solid #00ffff; border-radius: 5px; max-height: ${maxHeight}; position: relative; margin: 0 auto; background: #000; padding: 0; display: inline-block;">`;
     
-    html += '<table class="vig-table" style="width: 500px; table-layout: fixed; min-width: 500px; border-collapse: separate; border-spacing: 0; position: relative;">';
+    html += '<table class="vig-table" style="width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 0; position: relative; margin: 0; padding: 0;">';
     
     // Header row with floating first column
     html += '<tr><th style="width: 40px; min-width: 40px; max-width: 40px;"></th>';
@@ -2217,14 +2217,19 @@ function runMain() {
                 textLabel.textContent = 'Plaintext:';
                 displayTextLabel.textContent = 'Ciphertext: ';
                 transPlaintextInput.value = 'HELLO';
-                // Show pad-with-X option in encrypt mode
                 padWithXGroup.style.display = 'flex';
             } else {
-                textLabel.textContent = 'Ciphertext:';
-                displayTextLabel.textContent = 'Plaintext: ';
-                transPlaintextInput.value = 'EOHLLX';
-                padWithX = false;
-                // Hide pad-with-X option in decrypt mode
+                if(padWithX){
+                    textLabel.textContent = 'Ciphertext:';
+                    displayTextLabel.textContent = 'Plaintext: ';
+                    transPlaintextInput.value = 'EOHLLX';
+                }
+                else{
+                    textLabel.textContent = 'Ciphertext:';
+                    displayTextLabel.textContent = 'Plaintext: ';
+                    transPlaintextInput.value = 'EOHLL';
+                }
+                // Hide pad-with-X option in decrypt mode (but keep current checked state)
                 padWithXGroup.style.display = 'none';
             }
         }
@@ -2926,17 +2931,18 @@ function runMain() {
                                 .map(o => o.v);
                         }
 
-                        // Determine column heights for decryption (no padding: earlier columns in key get +1)
+                        // Determine column heights for decryption.
+                        // When not padding, because the grid is filled row-wise left-to-right during encryption,
+                        // the first (rem) columns in NATURAL order (0..rem-1) contain one extra character.
                         const base = Math.floor(totalLetters / keyLength);
                         const rem = totalLetters % keyLength;
                         const colHeights = Array(keyLength).fill(base);
                         if (padWithX && base * keyLength !== totalLetters) {
-                            // When padding is on, workingMessage is padded to full rectangle already
+                            // When padding is on, workingMessage is already a full rectangle
                             for (let i = 0; i < keyLength; i++) colHeights[i] = rows;
                         } else {
                             for (let k = 0; k < rem; k++) {
-                                const visCol = visOrderAsc[k];
-                                colHeights[visCol] = base + 1;
+                                colHeights[k] = base + 1; // allocate extras to natural left-to-right columns
                             }
                         }
 
@@ -3167,8 +3173,11 @@ function runMain() {
                     transCurrentAnimationId++;
                     
                     // Get current input values
+                    // Sync pad flag with current checkbox state
+                    padWithX = padWithXCheckbox.checked;
                     const plaintext = transPlaintextInput.value.toUpperCase().replace(/[^A-Z]/g, '');
-                    const key = transKeyInput.value.toUpperCase().replace(/[^A-Z]/g, '');
+                    // Keep alphanumeric keys; upper-case letters, keep digits
+                    const key = transKeyInput.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
                     
                     if (modeSelect.value === 'encrypt') {
                         displayBoxesEncrypt(

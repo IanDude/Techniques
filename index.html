@@ -131,15 +131,15 @@
             <h2 class="header-title" data-text="Techniques">Techniques</h2>
         </header>
         <main class="grid-container">
-            <div class="card" data-description="A simple substitution cipher where each letter is shifted by a fixed amount. " data-model="padlock-unlock.obj">
+            <div class="card" data-description="A simple substitution cipher where each letter in the plaintext is shifted by a fixed number of positions in the alphabet. It’s easy to implement but also easy to break." data-model="padlock-unlock.obj">
                 <canvas class="mini-canvas"></canvas>
                 <h2 data-text="Caesar">Caesar</h2>
             </div>
-            <div class="card" data-description="A polyalphabetic cipher that uses a keyword to shift letters." data-model="padlock-unlock.obj">
+            <div class="card" data-description="A polyalphabetic substitution cipher that uses a keyword to determine the shift for each letter. The keyword is repeated over the plaintext, and each letter is shifted based on the corresponding keyword letter." data-model="padlock-unlock.obj">
                 <canvas class="mini-canvas"></canvas>
                 <h2 data-text="Vigenère">Vigenère</h2>
             </div>
-            <div class="card" data-description="A cipher that rearranges the letters of the plaintext." data-model="padlock-unlock.obj">
+            <div class="card" data-description="A transposition method where text is written in a grid under a keyword, then letters are read column by column in the order of the keyword’s letters." data-model="padlock-unlock.obj">
                 <canvas class="mini-canvas"></canvas>
                 <h2 data-text="Transposition">Transposition</h2>
             </div>
