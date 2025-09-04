@@ -223,6 +223,7 @@ async function runCaesarAnimationEncrypt({ scene, camera, engine }, shift, stopL
             letterBubbles[i].rect.addControl(stackPanel);
             await fadeInRect(letterBubbles[i].rect, 300);
             // Clamp bubble to canvas horizontally using actual width
+            
             let bubbleWidth = letterBubbles[i].rect._currentMeasure ? letterBubbles[i].rect._currentMeasure.width : 420;
             const engineWidth = engine.getRenderWidth();
             const meshScreenPos = BABYLON.Vector3.Project(
@@ -240,6 +241,7 @@ async function runCaesarAnimationEncrypt({ scene, camera, engine }, shift, stopL
             } else {
                 letterBubbles[i].rect.linkOffsetX = 0;
             }
+            await new Promise(resolve => setTimeout(resolve, 600));
             let steps = (shiftedIndex - charIndex + 26) % 26;
             let current = charIndex;
             for (let s = 0; s <= steps; s++) {
@@ -251,7 +253,7 @@ async function runCaesarAnimationEncrypt({ scene, camera, engine }, shift, stopL
                 letterBlocks[current].color = (s === steps) ? "#03ff13" : "#ff0d05";
                 letterBlocks[current].fontWeight = "bold";
                 letterBlocks[current].background = (s === steps) ? "#22c55e" : "#3b82f6";
-                await new Promise(resolve => setTimeout(resolve, 480));
+                await new Promise(resolve => setTimeout(resolve, 600));
                 current = (current + 1) % 26;
             }
             letterBox.texture.clear();
@@ -282,12 +284,51 @@ async function runCaesarAnimationEncryptASCII({ scene, camera, engine }, shift, 
     if (!message || message.trim() === "") {
         return;
     }
+    
+    // Extended ASCII control codes and symbols
+    const asciiCodes = [
+        // 0–15
+        "NUL","SOH","STX","ETX","EOT","ENQ","ACK","BEL",
+        "BS","HT","LF","VT","FF","CR","SO","SI",
+        // 16–31
+        "DLE","DC1","DC2","DC3","DC4","NAK","SYN","ETB",
+        "CAN","EM","SUB","ESC","FS","GS","RS","US",
+        // 32–47
+        "SP","!","\"","#","$","%","&","'","(",")","*","+",",","-",".","/",
+        // 48–63
+        "0","1","2","3","4","5","6","7","8","9",":",";","<","="," >", "?",
+        // 64–79
+        "@","A","B","C","D","E","F","G","H","I","J","K","L","M","N","O",
+        // 80–95
+        "P","Q","R","S","T","U","V","W","X","Y","Z","[","\\","]","^","_",
+        // 96–111
+        "`","a","b","c","d","e","f","g","h","i","j","k","l","m","n","o",
+        // 112–127
+        "p","q","r","s","t","u","v","w","x","y","z","{","|","}","~","DEL",
+        // 128–143
+        "€","???","‚","ƒ","„","…","†","‡","ˆ","‰","Š","‹","Œ","???","Ž","???",
+        // 144–159
+        "???","‘","’","“","”","•","–","—","˜","™","š","›","œ","???","ž","Ÿ",
+        // 160–175
+        "NBSP","¡","¢","£","¤","¥","¦","§","¨","©","ª","«","¬","­SHY","®","¯",
+        // 176–191
+        "°","±","²","³","´","µ","¶","·","¸","¹","º","»","¼","½","¾","¿",
+        // 192–207
+        "À","Á","Â","Ã","Ä","Å","Æ","Ç","È","É","Ê","Ë","Ì","Í","Î","Ï",
+        // 208–223
+        "Ð","Ñ","Ò","Ó","Ô","Õ","Ö","×","Ø","Ù","Ú","Û","Ü","Ý","Þ","ß",
+        // 224–239
+        "à","á","â","ã","ä","å","æ","ç","è","é","ê","ë","ì","í","î","ï",
+        // 240–255
+        "ð","ñ","ò","ó","ô","õ","ö","÷","ø","ù","ú","û","ü","ý","þ","ÿ"
+      ];
+
     while (!stopLoopRef.value) {
         // Remove all meshes and GUI
         scene.meshes.slice().forEach(mesh => mesh.dispose());
         if (scene._rootLayer) scene._rootLayer.dispose();
         if (guiTexture){
-          guiTexture.dispose();
+            guiTexture.dispose();
         }
         guiTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
         const advancedTexture = guiTexture;
@@ -295,6 +336,7 @@ async function runCaesarAnimationEncryptASCII({ scene, camera, engine }, shift, 
         const letterBubbles = [];
         const spacing = 3;
         const startX = ((message.length - 1) / 2) * spacing;
+        
         for (let i = 0; i < message.length; i++) {
             const char = message[i];
             const x = startX - (i * spacing);
@@ -303,6 +345,7 @@ async function runCaesarAnimationEncryptASCII({ scene, camera, engine }, shift, 
             for (let j = 1; j < 6; j++) {
                 faceUV[j] = new BABYLON.Vector4(0, 0, 0, 0);
             }
+            
             const box = BABYLON.MeshBuilder.CreateBox("letterBox" + i, {
                 width: 1.8,
                 height: 2.5,
@@ -310,57 +353,89 @@ async function runCaesarAnimationEncryptASCII({ scene, camera, engine }, shift, 
                 faceUV: faceUV
             }, scene);
             box.position = new BABYLON.Vector3(x, 0, 0);
+            
             const material = new BABYLON.StandardMaterial("letterMat" + i, scene);
             const texture = new BABYLON.DynamicTexture("letterTexture" + i, { width: 128, height: 128 }, scene, false);
-            texture.drawText(char, null, null, "bold 48px Arial", "#2d3a4b", "#e0e7ef", true);
+            
+            // Find the ASCII code index for this character
+            let asciiIndex = asciiCodes.findIndex(code => 
+                code === char || 
+                (code === "SP" && char === " ") ||
+                (code === "DEL" && char === String.fromCharCode(127))
+            );
+            
+            if (asciiIndex === -1) {
+                // If not found, use the character itself
+                texture.drawText(char, null, null, "bold 48px Arial", "#2d3a4b", "#e0e7ef", true);
+            } else {
+                // Display the ASCII code name
+                texture.drawText(asciiCodes[asciiIndex], null, null, "bold 48px Arial", "#2d3a4b", "#e0e7ef", true);
+            }
+            
             material.diffuseTexture = texture;
             material.diffuseColor = new BABYLON.Color3.FromHexString("#a200ff");
             material.emissiveColor = new BABYLON.Color3.FromHexString("#a200ff");
             box.material = material;
+            
             letterBoxes.push({
                 mesh: box,
                 texture: texture,
                 material: material,
                 char: char,
                 originalChar: char,
+                asciiIndex: asciiIndex,
                 index: i,
                 suppressAnimation: false
             });
+            
             const rect = new BABYLON.GUI.Rectangle();
-            rect.width = "auto";
-            rect.height = "40px";
+            rect.width = "420px";
+            rect.height = "54px";
             rect.cornerRadius = 10;
             rect.color = "#00ffff";
             rect.thickness = 2;
-            rect.background = "white";
+            rect.background = "#000000";
             rect.alpha = 0;
-            rect.adaptWidthToChildren = true;
-            const textBlock = new BABYLON.GUI.TextBlock();
-            textBlock.text = "";
-            textBlock.color = "black";
-            textBlock.fontSize = 20;
-            rect.addControl(textBlock);
+            
             advancedTexture.addControl(rect);
             rect.linkWithMesh(box);
             rect.linkOffsetY = -70;
-            letterBubbles.push({ rect, textBlock });
+            letterBubbles.push({ rect });
         }
+        
         // Animate
-        const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
         for (let i = 0; i < letterBoxes.length; i++) {
             const letterBox = letterBoxes[i];
             letterBox.suppressAnimation = true;
-            const char = letterBox.originalChar.toUpperCase();
-            const charIndex = alphabet.indexOf(char);
-            if (charIndex === -1) continue;
-            letterBox.material.emissiveColor = new BABYLON.Color3.FromHexString("#9dfafa"); // Highlight Color
-            letterBox.material.diffuseColor = new BABYLON.Color3.FromHexString("#9dfafa"); // Highlight Color
+            
+            const char = letterBox.originalChar;
+            let charIndex = letterBox.asciiIndex;
+            
+            // If character not found in ASCII codes, find its position
+            if (charIndex === -1) {
+                charIndex = asciiCodes.findIndex(code => 
+                    code.length === 1 && code === char || 
+                    (code === "SP" && char === " ") ||
+                    (code === "DEL" && char === String.fromCharCode(127))
+                );
+                
+                if (charIndex === -1) {
+                    // Skip if character not in ASCII set
+                    letterBox.suppressAnimation = false;
+                    continue;
+                }
+            }
+            
+            letterBox.material.emissiveColor = new BABYLON.Color3.FromHexString("#9dfafa");
+            letterBox.material.diffuseColor = new BABYLON.Color3.FromHexString("#9dfafa");
+            
             const riseHeight = 2;
             const duration = 1000;
             const animSteps = 30;
             const animDelay = duration / animSteps;
             const startY = letterBox.mesh.position.y;
             const startRot = letterBox.mesh.rotation.y;
+            
             for (let t = 0; t <= animSteps; t++) {
                 const progress = t / animSteps;
                 const ease = 0.5 - 0.5 * Math.cos(Math.PI * progress);
@@ -369,48 +444,65 @@ async function runCaesarAnimationEncryptASCII({ scene, camera, engine }, shift, 
                 letterBox.mesh.rotation.y = startRot + 2 * Math.PI * progress;
                 await new Promise(resolve => setTimeout(resolve, animDelay));
             }
+            
             letterBox.mesh.position.y = startY + riseHeight;
             letterBox.mesh.rotation.y = startRot + 2 * Math.PI;
-            const shifted = caesarShiftEncrypt(char, shift);
-            const shiftedIndex = alphabet.indexOf(shifted);
+            
+            // Caesar shift encryption
+            const shiftedIndex = (charIndex + shift + asciiCodes.length) % asciiCodes.length;
+            const shifted = asciiCodes[shiftedIndex];
+            
+            // Create a container for the scrolling content
+            const container = new BABYLON.GUI.Rectangle();
+            container.width = "400px";
+            container.height = "50px";
+            container.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+            container.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+            container.background = "#000000";
+            container.thickness = 0; // Remove border thickness
+            container.color = "#000000"; // Make border transparent
+            container.clipChildren = true; // Important: clip children to container bounds
+            
             const stackPanel = new BABYLON.GUI.StackPanel();
             stackPanel.isVertical = false;
-            stackPanel.height = "54px";
-            stackPanel.width = "100%";
-            stackPanel.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+            stackPanel.height = "50px";
+            stackPanel.width = `${Math.max(asciiCodes.length * 60, 400)}px`;
+            stackPanel.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
             stackPanel.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
-            stackPanel.adaptWidthToChildren = true;
-            stackPanel.paddingLeft = "5px";
-            stackPanel.paddingRight = "5px";
-            stackPanel.background = "#15162e";
+            
             const letterBlocks = [];
-            for (let j = 0; j < alphabet.length; j++) {
+            
+            for (let j = 0; j < asciiCodes.length; j++) {
                 const letterBlock = new BABYLON.GUI.TextBlock();
-                letterBlock.text = alphabet[j];
-                letterBlock.width = "18px";
+                letterBlock.text = asciiCodes[j];
+                letterBlock.width = "60px";
                 letterBlock.height = "30px";
-                letterBlock.fontSize = 18;
+                letterBlock.fontSize = 16;
                 letterBlock.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
                 letterBlock.textVerticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
-                letterBlock.paddingLeft = "0px";
-                letterBlock.paddingRight = "0px";
-                letterBlock.marginLeft = "1px";
-                letterBlock.marginRight = "1px";
+                letterBlock.paddingLeft = "2px";
+                letterBlock.paddingRight = "2px";
+                letterBlock.marginLeft = "2px";
+                letterBlock.marginRight = "2px";
                 letterBlock.color = (j === charIndex) ? "#3b82f6" : "#2d3a4b";
                 letterBlock.fontWeight = (j === charIndex) ? "bold" : "normal";
                 letterBlock.background = (j === charIndex) ? "#e0e7ef" : "";
+                letterBlock.minWidth = "60px";
                 stackPanel.addControl(letterBlock);
                 letterBlocks.push(letterBlock);
             }
+            
+            container.addControl(stackPanel);
             letterBubbles[i].rect.clearControls();
-            letterBubbles[i].rect.width = "auto";
-            letterBubbles[i].rect.adaptWidthToChildren = true;
-            letterBubbles[i].rect.height = "54px";
-            letterBubbles[i].rect.background = "#15162e";
-            letterBubbles[i].rect.addControl(stackPanel);
+            letterBubbles[i].rect.addControl(container);
+            
             await fadeInRect(letterBubbles[i].rect, 300);
+            
             // Clamp bubble to canvas horizontally using actual width
-            let bubbleWidth = letterBubbles[i].rect._currentMeasure ? letterBubbles[i].rect._currentMeasure.width : 420;
+            let bubbleWidth = 420; // Default width if measure fails
+            if (letterBubbles[i].rect._currentMeasure) {
+                bubbleWidth = letterBubbles[i].rect._currentMeasure.width;
+            }
             const engineWidth = engine.getRenderWidth();
             const meshScreenPos = BABYLON.Vector3.Project(
                 letterBoxes[i].mesh.position,
@@ -427,26 +519,65 @@ async function runCaesarAnimationEncryptASCII({ scene, camera, engine }, shift, 
             } else {
                 letterBubbles[i].rect.linkOffsetX = 0;
             }
-            let steps = (shiftedIndex - charIndex + 26) % 26;
-            let current = charIndex;
+            
+            // Function to scroll to a specific character
+            const scrollToChar = (index) => {
+                const charWidth = 60;
+                const viewportWidth = 400;
+                const totalWidth = asciiCodes.length * charWidth;
+                
+                // Calculate target position to center the character
+                let targetX = (index * charWidth) - (viewportWidth / 2) + (charWidth / 2);
+                
+                // Clamp the scroll position to valid range
+                targetX = Math.max(0, Math.min(totalWidth - viewportWidth, targetX));
+                
+                // Apply the scroll by adjusting the panel's left margin
+                stackPanel.paddingLeft = `-${targetX}px`;
+                stackPanel._markAsDirty();
+                
+                // Force a re-render
+                return new Promise(resolve => requestAnimationFrame(resolve));
+            };
+            
+            // Initial scroll to position
+            await scrollToChar(charIndex);
+            await new Promise(resolve => setTimeout(resolve, 600));
+            // Animate the shift
+            let steps = shift;
+            
             for (let s = 0; s <= steps; s++) {
-                for (let j = 0; j < alphabet.length; j++) {
+                // Update all blocks
+                for (let j = 0; j < asciiCodes.length; j++) {
                     letterBlocks[j].color = "#57f2ed";
                     letterBlocks[j].fontWeight = "normal";
                     letterBlocks[j].background = "";
                 }
-                letterBlocks[current].color = (s === steps) ? "#03ff13" : "#ff0d05";
-                letterBlocks[current].fontWeight = "bold";
-                letterBlocks[current].background = (s === steps) ? "#22c55e" : "#3b82f6";
-                await new Promise(resolve => setTimeout(resolve, 480));
-                current = (current + 1) % 26;
+                
+                // Highlight current position
+                const targetIndex = (charIndex + s) % asciiCodes.length;
+                letterBlocks[targetIndex].color = (s === steps) ? "#03ff13" : "#ff0d05";
+                letterBlocks[targetIndex].fontWeight = "bold";
+                letterBlocks[targetIndex].background = (s === steps) ? "#22c55e" : "#3b82f6";
+                
+                // Scroll to the current character
+                await scrollToChar(targetIndex);
+                
+                // Pause between steps
+                await new Promise(resolve => setTimeout(resolve, 500));
             }
+            
+            // Update the box texture with the encrypted ASCII code
             letterBox.texture.clear();
             letterBox.texture.drawText(shifted, null, null, "bold 48px Arial", "#000000", "#e0e7ef", true);
             letterBox.char = shifted;
+            letterBox.asciiIndex = shiftedIndex;
+            
             await new Promise(resolve => setTimeout(resolve, 400));
             await fadeOutRect(letterBubbles[i].rect, 300);
             letterBubbles[i].rect.clearControls();
+            
+            // Animate descent
             for (let t = 0; t <= animSteps; t++) {
                 const progress = t / animSteps;
                 const ease = 0.5 - 0.5 * Math.cos(Math.PI * progress);
@@ -455,12 +586,14 @@ async function runCaesarAnimationEncryptASCII({ scene, camera, engine }, shift, 
                 letterBox.mesh.rotation.y = startRot + 2 * Math.PI * progress;
                 await new Promise(resolve => setTimeout(resolve, animDelay));
             }
+            
             letterBox.mesh.position.y = startY;
             letterBox.mesh.rotation.y = startRot;
             letterBox.material.emissiveColor = new BABYLON.Color3.FromHexString("#00ffff");
             letterBox.suppressAnimation = false;
         }
-        await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second pause
+        
+        await new Promise(resolve => setTimeout(resolve, 2000));
         if (stopLoopRef.value) break;
     }
 }
@@ -614,6 +747,7 @@ async function runCaesarAnimationDecrypt({ scene, camera, engine }, shift, stopL
             } else {
                 letterBubbles[i].rect.linkOffsetX = 0;
             }
+            await new Promise(resolve => setTimeout(resolve, 600));
             // For decryption, we go backwards through the alphabet
             let steps = (charIndex - decryptedIndex + 26) % 26;
             let current = charIndex;
@@ -626,7 +760,7 @@ async function runCaesarAnimationDecrypt({ scene, camera, engine }, shift, stopL
                 letterBlocks[current].color = (s === steps) ? "#03ff13" : "#ff0d05";
                 letterBlocks[current].fontWeight = "bold";
                 letterBlocks[current].background = (s === steps) ? "#22c55e" : "#3b82f6";
-                await new Promise(resolve => setTimeout(resolve, 480));
+                await new Promise(resolve => setTimeout(resolve, 600));
                 current = (current - 1 + 26) % 26; // Go backwards for decryption
             }
             letterBox.texture.clear();
@@ -689,8 +823,8 @@ async function runCaesarAnimationDecryptASCII({ scene, camera, engine }, shift, 
             const texture = new BABYLON.DynamicTexture("letterTexture" + i, { width: 128, height: 128 }, scene, false);
             texture.drawText(char, null, null, "bold 48px Arial", "#2d3a4b", "#e0e7ef", true);
             material.diffuseTexture = texture;
-            material.diffuseColor = new BABYLON.Color3.FromHexString("#00ffff");
-            material.emissiveColor = new BABYLON.Color3.FromHexString("#00ffff");
+            material.diffuseColor = new BABYLON.Color3.FromHexString("#a200ff");
+            material.emissiveColor = new BABYLON.Color3.FromHexString("#a200ff");
             box.material = material;
             letterBoxes.push({
                 mesh: box,
@@ -1328,7 +1462,7 @@ function runMain() {
         const useASCIILabel = document.createElement('label');
         useASCIILabel.htmlFor = 'caesar-use-asci';
         useASCIILabel.style.fontSize = '12px';
-        useASCIILabel.textContent = 'Use ASCII table of code';
+        useASCIILabel.textContent = 'Apply ASCII Table of Symbols';
         useASCIILabel.style.fontWeight = 'normal';
         useASCIILabel.style.color = '#00ffff';
         
@@ -1490,7 +1624,12 @@ function runMain() {
                 caesarASCII = useASCIICheckbox.checked;
                 if(caesarASCII){
                     document.getElementById('caesar-shift').max = 255;
+                    // Reset shift value to 3 when ASCII mode is enabled
+                    caesarShiftInput.value = 3;
+                    caesarShiftValue.textContent = '3';
                 }else{
+                    caesarShiftInput.value = 3;
+                    caesarShiftValue.textContent = '3';
                     document.getElementById('caesar-shift').max = 25;
                 }
                 restartCaesarAnimation();
@@ -1667,7 +1806,7 @@ function runMain() {
                     box.position = new BABYLON.Vector3(x, 0, 0);
                     const material = new BABYLON.StandardMaterial("letterMat" + i, scene);
                     const texture = new BABYLON.DynamicTexture("letterTexture" + i, { width: 128, height: 128 }, scene, false);
-                    texture.drawText(char, null, null, "bold 48px Arial", "#2d3a4b", "#e0e7ef", true);
+                    texture.drawText(char, null, 80, "bold 64px Arial", "#2d3a4b", "#e0e7ef", true);
                     material.diffuseTexture = texture;
                     material.diffuseColor = new BABYLON.Color3.FromHexString("#00ffff");
                     material.emissiveColor = new BABYLON.Color3.FromHexString("#00ffff");
