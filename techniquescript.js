@@ -1,17 +1,45 @@
 console.log('[Top] script.js loaded');
 // --- Utility and Babylon functions (OUTSIDE DOMContentLoaded) ---
 
-// Export for Node.js testing
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = {
-        caesarShiftEncrypt,
-        caesarShiftDecrypt,
-        vigenereShiftEncrypt,
-        vigenereShiftDecrypt,
-        generateVigenereTableFromKeyword,
-        columnarTranspositionEncrypt
-    };
+// Define all functions first
+function caesarShiftEncrypt(char, shift) {
+    const code = char.charCodeAt(0);
+    if (code >= 65 && code <= 90) {
+        return String.fromCharCode(((code - 65 + shift) % 26) + 65);
+    } else if (code >= 97 && code <= 122) {
+        return String.fromCharCode(((code - 97 + shift) % 26) + 97);
+    } else {
+        return char;
+    }
 }
+
+function caesarShiftDecrypt(char, shift) {
+    const code = char.charCodeAt(0);
+    if (code >= 65 && code <= 90) {
+        return String.fromCharCode(((code - 65 - shift + 26) % 26) + 65);
+    } else if (code >= 97 && code <= 122) {
+        return String.fromCharCode(((code - 97 - shift + 26) % 26) + 97);
+    } else {
+        return char;
+    }
+}
+
+// Make functions available globally for testing
+if (typeof window !== 'undefined') {
+    window.caesarShiftEncrypt = caesarShiftEncrypt;
+    window.caesarShiftDecrypt = caesarShiftDecrypt;
+    // Add other functions as needed
+}
+
+// Export for ES modules
+export {
+    caesarShiftEncrypt,
+    caesarShiftDecrypt,
+    vigenereShiftEncrypt,
+    vigenereShiftDecrypt,
+    generateVigenereTableFromKeyword,
+    columnarTranspositionEncrypt
+};
 
 function caesarShiftEncrypt(char, shift) {
     const code = char.charCodeAt(0);
