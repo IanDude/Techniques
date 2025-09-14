@@ -2,14 +2,35 @@ console.log('[Top] script.js loaded');
 // --- Utility and Babylon functions (OUTSIDE DOMContentLoaded) ---
 
 // Define all functions first
+
+// Export functions for testing
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        caesarShiftEncrypt,
+        caesarShiftDecrypt,
+        vigenereShiftEncrypt,
+        vigenereShiftDecrypt,
+        generateVigenereTableFromKeyword,
+        columnarTranspositionEncrypt
+    };
+}
 function caesarShiftEncrypt(char, shift) {
     const code = char.charCodeAt(0);
-    if (code >= 65 && code <= 90) {
-        return String.fromCharCode(((code - 65 + shift) % 26) + 65);
-    } else if (code >= 97 && code <= 122) {
-        return String.fromCharCode(((code - 97 + shift) % 26) + 97);
+    
+    if (code >= 65 && code <= 90) { // Uppercase
+        // For uppercase, shift forward (A->B with shift 1)
+        const base = 65;
+        const effectiveShift = ((shift % 26) + 26) % 26; // Ensure positive
+        const shifted = (code - base + effectiveShift) % 26;
+        return String.fromCharCode(shifted + base);
+    } else if (code >= 97 && code <= 122) { // Lowercase
+        // For lowercase, shift forward (a->b with shift 1)
+        const base = 97;
+        const effectiveShift = ((shift % 26) + 26) % 26; // Ensure positive
+        const shifted = (code - base + effectiveShift) % 26;
+        return String.fromCharCode(shifted + base);
     } else {
-        return char;
+        return char; // Non-alphabetic characters remain unchanged
     }
 }
 
