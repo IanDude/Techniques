@@ -1,6 +1,18 @@
 console.log('[Top] script.js loaded');
 // --- Utility and Babylon functions (OUTSIDE DOMContentLoaded) ---
 
+// Export for Node.js testing
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        caesarShiftEncrypt,
+        caesarShiftDecrypt,
+        vigenereShiftEncrypt,
+        vigenereShiftDecrypt,
+        generateVigenereTableFromKeyword,
+        columnarTranspositionEncrypt
+    };
+}
+
 function caesarShiftEncrypt(char, shift) {
     const code = char.charCodeAt(0);
     if (code >= 65 && code <= 90) {
